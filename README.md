@@ -1,25 +1,32 @@
 # 🍛 Aaj Kya Banaye?
 
-A 42-day rotating Indian vegetarian meal planner. See today's meals, swap dishes, track what you ate, get snack ideas, and generate grocery lists — all stored locally on your device.
+Ever stood in front of the fridge at 8:30 PM, asking your family (or yourself) the ultimate, unresolved daily question: *"Aaj kya banaye?"* (What should we make today?) 
 
-**Live:** [vaibhav159.github.io/aaj-kya-banye](https://vaibhav159.github.io/aaj-kya-banye/)
+This project solves that exact everyday decision fatigue for Indian households. It is a highly-polished, 42-day rotating Indian vegetarian meal planner designed to feel like a premium native app. It helps you decide what to cook, structures your weekly groceries, respects your custom food preferences/rules, and gives you a backup plan when you absolutely cannot decide.
 
 ---
 
-## Features
+## 💡 The Problem & The Solution
 
-- **Today view** — breakfast, lunch, dinner with macro breakdown and nutrition rings
-- **42-day planner** — browse and swap any meal slot across the full cycle
-- **Kuch Bhi mode** — let the app help when you can't pick what to cook
-- **Meal log** — track eaten/skipped meals, maintain streaks
-- **Snack finder** — 18 snacks filtered by craving (sweet, salty, crunchy, warm, refreshing, quick)
-- **Grocery list** — aggregated ingredients by category for any date range
-- **Dish database** — browse all 64 dishes with filters and search
-- **Custom rules** — avoid/prefer/require rules scoped by slot, cuisine, cooking type, equipment, prep time, spice level
-- **Calendar export** — download `.ics` files or sync a live feed via Cloudflare Workers
-- **Share** — Web Share API with clipboard fallback
+1. **"What to cook today?" fatigue:** Most meal planners are built for Western diets (salads, meal-prepped chicken breasts). *Aaj Kya Banaye* is built specifically for Indian kitchens, pre-loaded with a rotating database of Indian vegetarian dishes (roti, subzi, dal, parathas, etc.).
+2. **"I want custom rules/preferences:"** Don't want fried food on weekdays? Prefer dal every day? Want leafy greens twice a week? The app features a powerful custom rules engine to automatically generate plans conforming to your lifestyle.
+3. **"I still don't know!" (Decision Paralysis):** When you just can't make up your mind, the **Kuch Bhi** (Anything) generator steps in to make the decision for you with an interactive helper.
 
-No account needed. All data lives in `localStorage`.
+---
+
+## 🌟 Key Features
+
+- **Today View** — Quick glance at breakfast, lunch, and dinner with macro breakdowns, ingredient checklists, and beautiful nutrition rings.
+- **42-Day Planner** — Drag, drop, swap, or override any meal slot across a deterministic 42-day cycle.
+- **Kuch Bhi Mode** — The ultimate helper when you're completely undecided. Let the app pick for you!
+- **Custom Rules Engine** — Set rules like "Avoid fried food," "Prefer quick meals under 20 mins," or "No repeating same dish within 3 days."
+- **Meal Log & Streaks** — Track eaten/skipped meals, delay times, and build consistency streaks (visualized with calendar colors).
+- **Craving-Based Snack Finder** — Need a snack? Filter local options by craving: Sweet, Salty, Crunchy, Warm, Refreshing, or Quick.
+- **Aggregated Grocery Lists** — Generates a combined shopping list for any date range, merging duplicates and grouping ingredients by category.
+- **Calendar Sync** — Export your plan as a `.ics` file or subscribe to a live synced feed in your Google/Apple Calendar.
+- **Cloud Sync** — Secured by Supabase with optional auth to keep your plan backed up across devices.
+
+No accounts required by default. All data is saved locally in `localStorage` first, ensuring instant load times.
 
 ---
 
