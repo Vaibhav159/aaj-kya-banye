@@ -12,4 +12,71 @@ if (typeof window === "undefined") {
   };
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, options);
+export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
+
+const makeMockSupabase = () => {
+  const mockPromise = Promise.resolve({ data: null, error: null, count: 0 });
+
+  const createQueryBuilder = (): any => {
+    const builder = {
+      select: () => builder,
+      insert: () => builder,
+      update: () => builder,
+      upsert: () => builder,
+      delete: () => builder,
+      eq: () => builder,
+      neq: () => builder,
+      gt: () => builder,
+      lt: () => builder,
+      gte: () => builder,
+      lte: () => builder,
+      like: () => builder,
+      ilike: () => builder,
+      is: () => builder,
+      in: () => builder,
+      contains: () => builder,
+      containedBy: () => builder,
+      range: () => builder,
+      textSearch: () => builder,
+      filter: () => builder,
+      match: () => builder,
+      order: () => builder,
+      limit: () => builder,
+      single: () => mockPromise,
+      maybeSingle: () => mockPromise,
+      csv: () => builder,
+      then: (onfulfilled?: any, onrejected?: any) => {
+        return mockPromise.then(onfulfilled, onrejected);
+      },
+      catch: (onrejected?: any) => {
+        return mockPromise.catch(onrejected);
+      },
+      finally: (onfinally?: any) => {
+        return mockPromise.finally(onfinally);
+      }
+    };
+    return builder;
+  };
+
+  return {
+    auth: {
+      getUser: async () => ({ data: { user: null }, error: null }),
+      onAuthStateChange: () => ({
+        data: {
+          subscription: {
+            unsubscribe: () => {},
+          },
+        },
+      }),
+      signInWithPassword: async () => ({ data: { user: null }, error: new Error("Supabase is not configured") }),
+      signUp: async () => ({ data: { user: null }, error: new Error("Supabase is not configured") }),
+      signOut: async () => ({ error: null }),
+    },
+    from: () => createQueryBuilder(),
+  } as any;
+};
+
+// ponytail: mock Supabase client when VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY are missing
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey, options)
+  : makeMockSupabase();

@@ -651,3 +651,36 @@ export function useCustomDishes() {
 
   return { dishes, add, update, remove, hydrated };
 }
+
+export type MealDisplayStatus = "eaten" | "skipped" | "delayed" | "pending";
+
+export function getMealDisplayStatus(
+  entry: LogEntry | undefined,
+  slot: Slot,
+  dayIdx: number,
+  cycleStart: number,
+  profile: Profile
+): MealDisplayStatus {
+  if (!entry) return "pending";
+  if (entry.status === "skipped") return "skipped";
+
+  // Calculate target time
+  const timeStr =
+    slot === "breakfast"
+      ? profile.breakfastTime
+      : slot === "lunch"
+        ? profile.lunchTime
+        : profile.dinnerTime;
+  const [hours, mins] = timeStr.split(":").map(Number);
+
+  const targetDate = new Date(cycleStart);
+  targetDate.setDate(targetDate.getDate() + dayIdx);
+  targetDate.setHours(hours, mins, 0, 0);
+
+  // 30 minutes delay buffer (ponytail: 30-min hardcoded limit meets requirement cleanly)
+  const bufferMs = 30 * 60 * 1000;
+  if (entry.at > targetDate.getTime() + bufferMs) {
+    return "delayed";
+  }
+  return "eaten";
+}

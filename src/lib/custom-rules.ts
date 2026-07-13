@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { Cuisine, CookingType, Equipment, Dish, DishTag, Slot } from "./dishes";
 import { supabase } from "./supabase";
 
-export type RuleKind = "avoid" | "prefer" | "require";
+export type RuleKind = "avoid" | "prefer" | "require" | "min-frequency" | "max-frequency";
 export type RuleScope = "any" | "breakfast" | "lunch" | "dinner";
 
 export interface RuleMatch {
@@ -12,6 +12,7 @@ export interface RuleMatch {
   tag?: DishTag;
   maxPrepMinutes?: number;
   maxSpice?: 0 | 1 | 2 | 3;
+  frequencyLimit?: number; // frequency limit for min/max frequency rules (times per week)
 }
 
 export interface CustomRule {

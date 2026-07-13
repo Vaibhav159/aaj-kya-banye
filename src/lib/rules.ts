@@ -1,5 +1,5 @@
 import { DISHES_BY_ID, type Dish, type Slot } from "./dishes";
-import { passesRules, type CustomRule } from "./custom-rules";
+import { passesRules, dishMatches, type CustomRule } from "./custom-rules";
 
 export interface Rule {
   id: string;
@@ -34,8 +34,8 @@ export interface RuleCheck {
   detail: string;
 }
 
-/** Check the 8 rules for a single day (day index into plan). */
-export function checkDay(plan: WeekPlan, dayIdx: number): RuleCheck[] {
+/** Check the 8 rules + custom rules for a single day (day index into plan). */
+export function checkDay(plan: WeekPlan, dayIdx: number, customRules: CustomRule[] = []): RuleCheck[] {
   const day = plan[dayIdx];
   const weekStart = Math.floor(dayIdx / 7) * 7;
   const week = plan.slice(weekStart, weekStart + 7);
@@ -61,7 +61,7 @@ export function checkDay(plan: WeekPlan, dayIdx: number): RuleCheck[] {
   const windowIds = window.flatMap((d) => [d.breakfast, d.lunch, d.dinner]);
   const noRepeat = dayIds.every((id) => windowIds.filter((x) => x === id).length <= 1);
 
-  return [
+  const builtIn = [
     { id: "pizza-weekly", passed: pizzaCount <= 1, detail: `${pizzaCount} pizza this week` },
     { id: "paratha-slot", passed: parathaOk, detail: parathaOk ? "no dinner paratha" : "paratha at dinner" },
     { id: "fried-breakfast", passed: friedCount <= 2, detail: `${friedCount} fried breakfasts` },
@@ -71,6 +71,65 @@ export function checkDay(plan: WeekPlan, dayIdx: number): RuleCheck[] {
     { id: "lighter-dinner", passed: lighterDinner, detail: `dinner ${dinnerKcal} vs lunch ${lunchKcal}` },
     { id: "sweets-weekly", passed: sweetCount <= 2, detail: `${sweetCount} sweets this week` },
   ];
+
+  const customChecks: RuleCheck[] = customRules
+    .filter((r) => r.enabled)
+    .map((r) => {
+      let passed = true;
+      let detail = "";
+      const slotsToCheck: Slot[] = r.scope === "any" ? ["breakfast", "lunch", "dinner"] : [r.scope];
+
+      if (r.kind === "avoid") {
+        const hasViolatingDish = slotsToCheck.some((s) => {
+          const dish = DISHES_BY_ID[day[s]];
+          return dish && dishMatches(dish, r.match);
+        });
+        passed = !hasViolatingDish;
+        detail = passed ? "avoided ✓" : "avoided dish present";
+      } else if (r.kind === "require") {
+        if (r.scope === "any") {
+          passed = slotsToCheck.some((s) => {
+            const dish = DISHES_BY_ID[day[s]];
+            return dish && dishMatches(dish, r.match);
+          });
+        } else {
+          const dish = DISHES_BY_ID[day[r.scope]];
+          passed = dish ? dishMatches(dish, r.match) : false;
+        }
+        detail = passed ? "satisfied ✓" : "missing requirement";
+      } else if (r.kind === "min-frequency" || r.kind === "max-frequency") {
+        let count = 0;
+        week.forEach((d) => {
+          slotsToCheck.forEach((s) => {
+            const dish = DISHES_BY_ID[d[s]];
+            if (dish && dishMatches(dish, r.match)) count++;
+          });
+        });
+        const limit = r.match.frequencyLimit ?? 1;
+        if (r.kind === "min-frequency") {
+          passed = count >= limit;
+          detail = `${count}/${limit} times`;
+        } else {
+          passed = count <= limit;
+          detail = `${count}/${limit} times`;
+        }
+      } else if (r.kind === "prefer") {
+        const preferredCount = slotsToCheck.filter((s) => {
+          const dish = DISHES_BY_ID[day[s]];
+          return dish && dishMatches(dish, r.match);
+        }).length;
+        passed = true;
+        detail = preferredCount > 0 ? "preferred ✓" : "no preferred dish";
+      }
+
+      return {
+        id: r.id,
+        passed,
+        detail,
+      };
+    });
+
+  return [...builtIn, ...customChecks];
 }
 
 /** True if placing `dish` in `slot` on `dayIdx` violates no immediate rules. */
@@ -93,8 +152,40 @@ export function isSwapAllowed(dish: Dish, slot: Slot, dayIdx: number, plan: Week
   // Rule 7 (soft): dinner shouldn't exceed lunch by more than 50 kcal
   if (slot === "dinner" && dish.kcal > (DISHES_BY_ID[next[dayIdx].lunch]?.kcal ?? 0) + 50) return false;
 
-  // User custom rules
+  // User custom require/avoid rules
   if (!passesRules(dish, slot, customRules)) return false;
+
+  // Verify custom weekly frequency rules
+  const weekStart = Math.floor(dayIdx / 7) * 7;
+  const currentWeek = plan.slice(weekStart, weekStart + 7);
+  const nextWeek = next.slice(weekStart, weekStart + 7);
+
+  for (const r of customRules) {
+    if (!r.enabled) continue;
+    if (r.kind !== "min-frequency" && r.kind !== "max-frequency") continue;
+
+    const slotsToCheck: Slot[] = r.scope === "any" ? ["breakfast", "lunch", "dinner"] : [r.scope];
+    const limit = r.match.frequencyLimit ?? 1;
+
+    let origCount = 0;
+    currentWeek.forEach((d) => {
+      slotsToCheck.forEach((s) => {
+        const dObj = DISHES_BY_ID[d[s]];
+        if (dObj && dishMatches(dObj, r.match)) origCount++;
+      });
+    });
+
+    let nextCount = 0;
+    nextWeek.forEach((d) => {
+      slotsToCheck.forEach((s) => {
+        const dObj = DISHES_BY_ID[d[s]];
+        if (dObj && dishMatches(dObj, r.match)) nextCount++;
+      });
+    });
+
+    if (r.kind === "max-frequency" && nextCount > limit) return false;
+    if (r.kind === "min-frequency" && nextCount < limit && nextCount < origCount) return false;
+  }
 
   return true;
 }

@@ -9,7 +9,7 @@ import { DEFAULT_PROFILE, useCycleStart, useProfile, type Profile, syncAllData }
 import { buildIcs, downloadIcs } from "@/lib/ical";
 import { applyOverrides, currentDayIndex, useOverrides } from "@/lib/store";
 import { saveCalendarFeed } from "@/lib/calendar-server";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -183,6 +183,41 @@ function SettingsPage() {
 
   const update = <K extends keyof Profile>(k: K, v: Profile[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const calculateGoals = () => {
+    const { weightKg, targetKg } = form;
+    if (!weightKg || !targetKg) {
+      toast.error("Please enter both Weight and Target weight first!");
+      return;
+    }
+    
+    // Baseline Maintenance: weightKg * 30
+    const maintenance = weightKg * 30;
+    let kcal = maintenance;
+    
+    if (targetKg < weightKg) {
+      // Weight loss deficit: -400 kcal (cap at 1200 kcal min)
+      kcal = Math.max(1200, maintenance - 400);
+    } else if (targetKg > weightKg) {
+      // Weight gain surplus: +300 kcal
+      kcal = maintenance + 300;
+    }
+    
+    const goalKcal = Math.round(kcal);
+    const goalProtein = Math.round(targetKg * 1.8);
+    const goalFat = Math.round((goalKcal * 0.25) / 9);
+    const goalCarbs = Math.round((goalKcal - (goalProtein * 4) - (goalFat * 9)) / 4);
+    
+    setForm((prev) => ({
+      ...prev,
+      goalKcal,
+      goalProtein,
+      goalCarbs,
+      goalFat,
+    }));
+    
+    toast.success(`Goals auto-calculated for target weight ${targetKg} kg!`);
+  };
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
       <header>
@@ -206,7 +241,18 @@ function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Daily goals</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle>Daily goals</CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={calculateGoals}
+            className="text-xs"
+            type="button"
+          >
+            Auto-calculate
+          </Button>
+        </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Field label="Calories (kcal)"><Input type="number" value={form.goalKcal} onChange={(e) => update("goalKcal", Number(e.target.value))} /></Field>
           <Field label="Protein (g)"><Input type="number" value={form.goalProtein} onChange={(e) => update("goalProtein", Number(e.target.value))} /></Field>
@@ -234,7 +280,13 @@ function SettingsPage() {
           <CardTitle>Cloud Backup & Sync</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {syncLoading ? (
+          {!isSupabaseConfigured ? (
+            <div className="rounded-lg border border-dashed border-border bg-muted/40 p-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Cloud Sync is disabled. Configure <code className="font-mono text-xs bg-muted px-1 rounded">VITE_SUPABASE_URL</code> and <code className="font-mono text-xs bg-muted px-1 rounded">VITE_SUPABASE_ANON_KEY</code> to enable backup & sync.
+              </p>
+            </div>
+          ) : syncLoading ? (
             <div className="py-4 text-center text-sm text-muted-foreground">Loading sync status...</div>
           ) : user ? (
             <div className="space-y-4">

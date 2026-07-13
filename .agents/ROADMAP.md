@@ -21,17 +21,26 @@ Prioritized backlog. Agents: build from top down when asked "what's next." Updat
 - ✅ Drag-and-drop meal reordering in planner
 
 ### P2 — Content & intelligence
-- ⬜ Meal photo integration (upload or generate per dish)
-- ⬜ Expand dish database to 100+ dishes
-- ⬜ Seasonal/regional dish suggestions
-- ⬜ AI meal recommendations based on history
-- ⬜ Recipe page per dish (ingredients, steps, video link)
-- ⬜ Fuzzy search across dishes and snacks
-- ⬜ PWA support (service worker, installable, offline cache)
-- ⬜ Onboarding flow for first-time users (guided profile setup)
-- ⬜ "Cook now" timer with prep steps
+- ✅ Editable rules
+- ✅ Much more features in rules as min and max frequency
+- ✅ On Swap, let people search from recipe database
+- ✅ On Skip, turn last 7 days and history for that meal to red or some other color
+- ✅ On delay after given time, turn last 7 days and history for that meal diff colo
+- ✅ Fuzzy search across dishes and snacks
+- ✅ Calculate daily goals basis user target
 
 ### P3 — Integrations & social
 - ⬜ Shared meal plans (generate shareable link)
 - ⬜ Import/export meal plan as JSON
 - ⬜ Notifications / reminders (meal time alerts)
+
+### P4 - Good to have 
+- ⬜ Meal photo integration (upload or generate per dish)
+- ⬜ Expand dish database to 100+ dishes
+- ⬜ Seasonal/regional dish suggestions
+- ⬜ Onboarding flow for first-time users (guided profile setup)
+- ⬜ "Cook now" timer with prep steps
+- ⬜ AI meal recommendations based on history
+- ⬜ Recipe page per dish (ingredients, steps, video link)
+- ⬜ PWA support (service worker, installable, offline cache)
+

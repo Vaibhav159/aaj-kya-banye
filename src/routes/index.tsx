@@ -4,13 +4,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { DISHES_BY_ID, dishesForSlot, type Dish, type Slot } from "@/lib/dishes";
-import { applyOverrides, computeStreak, currentDayIndex, logKey, useCycleStart, useMealLog, useOverrides, useProfile } from "@/lib/store";
+import { Input } from "@/components/ui/input";
+import { DISHES, DISHES_BY_ID, dishesForSlot, type Dish, type Slot } from "@/lib/dishes";
+import {
+  applyOverrides,
+  computeStreak,
+  currentDayIndex,
+  logKey,
+  useCycleStart,
+  useMealLog,
+  useOverrides,
+  useProfile,
+  useCustomDishes,
+  getMealDisplayStatus,
+  type Profile,
+} from "@/lib/store";
 import { checkDay, isSwapAllowed, RULES } from "@/lib/rules";
 import { DishDetailDialog } from "@/components/dish-detail";
 import { shareOrCopy, todaySummary } from "@/lib/share";
 import { toast } from "sonner";
-import { useCustomRules } from "@/lib/custom-rules";
+import { useCustomRules, type CustomRule } from "@/lib/custom-rules";
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
@@ -56,7 +69,7 @@ function Dashboard() {
     { kcal: 0, protein: 0, carbs: 0, fat: 0 },
   );
 
-  const ruleChecks = checkDay(plan, dayIdx);
+  const ruleChecks = checkDay(plan, dayIdx, customRules);
   const streak = computeStreak(log, start, dayIdx);
 
   const onShare = async () => {
@@ -100,10 +113,10 @@ function Dashboard() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <NutritionCard totals={totals} profile={profile} />
-        <RulesCard checks={ruleChecks} />
+        <RulesCard checks={ruleChecks} customRules={customRules} />
       </div>
 
-      <RecentStrip log={log} start={start} plan={plan} todayIdx={dayIdx} />
+      <RecentStrip log={log} start={start} plan={plan} todayIdx={dayIdx} profile={profile} />
 
       <Dialog open={swapSlot !== null} onOpenChange={(o) => !o && setSwapSlot(null)}>
         <DialogContent className="max-w-2xl">
@@ -188,6 +201,7 @@ function MealCard({
     </Card>
   );
 }
+
 function Macro({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-md bg-muted px-2 py-2">
@@ -224,19 +238,24 @@ function NutritionCard({
               fill="none"
               stroke="var(--color-primary)"
               strokeWidth="14"
+              strokeDasharray={C}
+              strokeDashoffset={C - dash}
               strokeLinecap="round"
-              strokeDasharray={`${dash} ${C - dash}`}
             />
+            <text
+              x="80"
+              y="85"
+              textAnchor="middle"
+              className="fill-foreground font-display text-2xl font-bold rotate-90 origin-center"
+            >
+              {pct}%
+            </text>
           </svg>
-          <div>
-            <div className="font-display text-4xl font-semibold">{totals.kcal}</div>
-            <div className="text-sm text-muted-foreground">of {profile.goalKcal} kcal · {pct}%</div>
+          <div className="flex-1 space-y-3">
+            <MacroBar label="Protein" value={totals.protein} goal={profile.goalProtein} color="var(--color-primary)" />
+            <MacroBar label="Carbs" value={totals.carbs} goal={profile.goalCarbs} color="var(--color-accent)" />
+            <MacroBar label="Fat" value={totals.fat} goal={profile.goalFat} color="var(--color-success)" />
           </div>
-        </div>
-        <div className="mt-6 space-y-3">
-          <MacroBar label="Protein" value={totals.protein} goal={profile.goalProtein} color="var(--color-primary)" />
-          <MacroBar label="Carbs" value={totals.carbs} goal={profile.goalCarbs} color="var(--color-accent)" />
-          <MacroBar label="Fat" value={totals.fat} goal={profile.goalFat} color="var(--color-success)" />
         </div>
       </CardContent>
     </Card>
@@ -258,13 +277,14 @@ function MacroBar({ label, value, goal, color }: { label: string; value: number;
   );
 }
 
-function RulesCard({ checks }: { checks: ReturnType<typeof checkDay> }) {
+function RulesCard({ checks, customRules }: { checks: ReturnType<typeof checkDay>; customRules: CustomRule[] }) {
+  const enabledCustomRules = customRules.filter((r) => r.enabled);
   return (
     <Card>
       <CardHeader>
         <CardTitle className="font-display text-2xl">Rule Tracker</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
         {RULES.map((rule) => {
           const c = checks.find((x) => x.id === rule.id);
           return (
@@ -272,6 +292,29 @@ function RulesCard({ checks }: { checks: ReturnType<typeof checkDay> }) {
               <div>
                 <div className="text-sm font-medium">{rule.label}</div>
                 <div className="text-xs text-muted-foreground">{rule.description}</div>
+              </div>
+              <span
+                className={
+                  "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium " +
+                  (c?.passed
+                    ? "bg-success/15 text-success"
+                    : "bg-destructive/15 text-destructive")
+                }
+                style={{ color: c?.passed ? "var(--color-success)" : "var(--color-destructive)" }}
+              >
+                {c?.passed ? "✓" : "!"} {c?.detail}
+              </span>
+            </div>
+          );
+        })}
+        {enabledCustomRules.map((rule) => {
+          const c = checks.find((x) => x.id === rule.id);
+          if (!c) return null;
+          return (
+            <div key={rule.id} className="flex items-start justify-between gap-3 rounded-md border border-border/70 bg-secondary/30 p-3">
+              <div>
+                <div className="text-sm font-medium">{rule.label}</div>
+                <div className="text-xs text-muted-foreground capitalize">{rule.kind.replace(/-/g, " ")} · {rule.scope}</div>
               </div>
               <span
                 className={
@@ -306,33 +349,96 @@ function SwapList({
   onPick: (id: string) => void;
 }) {
   const current = DISHES_BY_ID[plan[dayIdx][slot]];
-  const candidates = dishesForSlot(slot)
-    .filter((d) => d.id !== current.id)
-    .filter((d) => Math.abs(d.kcal - current.kcal) <= 150)
-    .filter((d) => isSwapAllowed(d, slot, dayIdx, plan, customRules))
-    .slice(0, 4);
+  const { dishes: customDishes } = useCustomDishes();
+  const [q, setQ] = useState("");
 
-  if (candidates.length === 0) {
-    return <p className="text-sm text-muted-foreground">No swap candidates match your rules right now. Loosen a rule on the Rules page and try again.</p>;
-  }
+  const allDishes = useMemo(() => {
+    const map = new Map<string, Dish>();
+    DISHES.forEach((d) => map.set(d.id, d));
+    customDishes.forEach((d) => map.set(d.id, d));
+    return Array.from(map.values());
+  }, [customDishes]);
+
+  const smartCandidates = useMemo(() => {
+    return allDishes
+      .filter((d) => d.id !== current.id)
+      .filter((d) => d.slots.includes(slot))
+      .filter((d) => Math.abs(d.kcal - current.kcal) <= 150)
+      .filter((d) => isSwapAllowed(d, slot, dayIdx, plan, customRules))
+      .slice(0, 4);
+  }, [allDishes, current.id, current.kcal, slot, dayIdx, plan, customRules]);
+
+  const searchResults = useMemo(() => {
+    if (!q.trim()) return [];
+    const query = q.toLowerCase();
+    return allDishes
+      .filter((d) => d.id !== current.id)
+      .filter((d) => d.slots.includes(slot))
+      .filter((d) => isSwapAllowed(d, slot, dayIdx, plan, customRules))
+      .filter((d) => d.name.toLowerCase().includes(query))
+      .slice(0, 10);
+  }, [q, allDishes, current.id, slot, dayIdx, plan, customRules]);
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      {candidates.map((d) => (
-        <button
-          key={d.id}
-          onClick={() => onPick(d.id)}
-          className="group flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-left transition hover:border-primary hover:bg-secondary/40"
-        >
-          <span className="text-3xl">{d.emoji}</span>
-          <div className="flex-1 min-w-0">
-            <div className="truncate font-medium">{d.name}</div>
-            <div className="text-xs text-muted-foreground">
-              {d.kcal} kcal · P {d.protein} · C {d.carbs} · F {d.fat}
+    <div className="space-y-4">
+      <Input
+        placeholder={`Search all ${slot} dishes to swap...`}
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        className="w-full"
+      />
+
+      {q.trim() === "" ? (
+        <div className="space-y-2">
+          <h4 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Smart Suggestions (±150 kcal)</h4>
+          {smartCandidates.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No recommended swap candidates match your rules right now.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {smartCandidates.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => onPick(d.id)}
+                  className="group flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-left transition hover:border-primary hover:bg-secondary/40"
+                >
+                  <span className="text-3xl">{d.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate font-medium">{d.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {d.kcal} kcal · P {d.protein} · C {d.carbs} · F {d.fat}
+                    </div>
+                  </div>
+                </button>
+              ))}
             </div>
-          </div>
-        </button>
-      ))}
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <h4 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Search Results ({searchResults.length})</h4>
+          {searchResults.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No dishes matching "{q}" pass rules.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {searchResults.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => onPick(d.id)}
+                  className="group flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-left transition hover:border-primary hover:bg-secondary/40"
+                >
+                  <span className="text-3xl">{d.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate font-medium">{d.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {d.kcal} kcal · P {d.protein} · C {d.carbs} · F {d.fat}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -342,11 +448,13 @@ function RecentStrip({
   start,
   plan,
   todayIdx,
+  profile,
 }: {
   log: ReturnType<typeof useMealLog>["log"];
   start: number;
   plan: ReturnType<typeof applyOverrides>;
   todayIdx: number;
+  profile: Profile;
 }) {
   const slots: Slot[] = ["breakfast", "lunch", "dinner"];
   const days = Array.from({ length: 7 }, (_, i) => (((todayIdx - (6 - i)) % 42) + 42) % 42);
@@ -363,14 +471,21 @@ function RecentStrip({
               <div className="text-[10px] text-muted-foreground">D{d + 1}</div>
               <div className="flex flex-col gap-0.5">
                 {slots.map((s) => {
-                  const st = log[logKey(start, d, s)]?.status;
+                  const entry = log[logKey(start, d, s)];
+                  const status = getMealDisplayStatus(entry, s, d, start, profile);
                   return (
                     <div
                       key={s}
-                      title={`${DISHES_BY_ID[plan[d][s]]?.name} · ${st ?? "not logged"}`}
+                      title={`${DISHES_BY_ID[plan[d][s]]?.name} · ${status}`}
                       className={
                         "h-3 rounded-sm " +
-                        (st === "eaten" ? "bg-success" : st === "skipped" ? "bg-muted" : "bg-border/60")
+                        (status === "eaten"
+                          ? "bg-success"
+                          : status === "delayed"
+                            ? "bg-warning animate-pulse"
+                            : status === "skipped"
+                              ? "bg-destructive animate-pulse"
+                              : "bg-border/60")
                       }
                     />
                   );
