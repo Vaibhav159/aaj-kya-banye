@@ -10,9 +10,9 @@ import { applyOverrides, currentDayIndex, useCycleStart, useOverrides } from "@/
 export const Route = createFileRoute("/decide")({
   head: () => ({
     meta: [
-      { title: "Decide · Thali" },
-      { name: "description", content: "Answer a few quick yes/no questions and let Thali pick tonight's dinner for you." },
-      { property: "og:title", content: "Decide for me · Thali" },
+      { title: "Decide · Aaj Kya Banaye?" },
+      { name: "description", content: "Answer a few quick yes/no questions and let us pick tonight's dinner for you." },
+      { property: "og:title", content: "Decide for me · Aaj Kya Banaye?" },
       { property: "og:description", content: "Tinder-style meal picker for when you can't decide." },
     ],
   }),

@@ -10,9 +10,9 @@ import { applyOverrides, currentDayIndex, useCycleStart, useOverrides } from "@/
 export const Route = createFileRoute("/grocery")({
   head: () => ({
     meta: [
-      { title: "Grocery · Thali" },
+      { title: "Grocery · Aaj Kya Banaye?" },
       { name: "description", content: "Smart grocery list aggregated from your meal plan, grouped by category with copy-to-clipboard." },
-      { property: "og:title", content: "Grocery · Thali" },
+      { property: "og:title", content: "Grocery · Aaj Kya Banaye?" },
       { property: "og:description", content: "Aggregated grocery list from your Indian vegetarian meal plan." },
     ],
   }),

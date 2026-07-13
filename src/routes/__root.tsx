@@ -81,10 +81,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Thali — Indian Vegetarian Meal Planner" },
+      { title: "Aaj Kya Banaye? — Indian Vegetarian Meal Planner" },
       { name: "description", content: "A 42-day rotating Indian vegetarian meal plan with swap suggestions, macro tracking, and a smart grocery list." },
-      { name: "author", content: "Thali" },
-      { property: "og:title", content: "Thali — Indian Vegetarian Meal Planner" },
+      { name: "author", content: "Aaj Kya Banaye?" },
+      { property: "og:title", content: "Aaj Kya Banaye? — Indian Vegetarian Meal Planner" },
       { property: "og:description", content: "42-day Indian vegetarian meal plan with macros, swaps and grocery aggregation." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -204,7 +204,7 @@ function SiteHeader() {
       <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3">
         <Link to="/" className="flex min-w-0 items-center gap-2">
           <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground text-lg">🍛</span>
-          <span className="truncate font-display text-xl font-semibold">Thali</span>
+          <span className="truncate font-display text-xl font-semibold">Aaj Kya Banaye?</span>
         </Link>
         <nav className="hidden md:flex flex-wrap items-center gap-1 text-sm">
           {links.map((l) => (
@@ -227,7 +227,7 @@ function SiteHeader() {
 function SiteFooter() {
   return (
     <footer className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-      Thali · 42-day Indian vegetarian meal planner · stored locally on your device
+      Aaj Kya Banaye? · 42-day Indian vegetarian meal planner · stored locally on your device
     </footer>
   );
 }

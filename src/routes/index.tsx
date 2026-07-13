@@ -16,9 +16,9 @@ import { Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Today · Thali" },
+      { title: "Today · Aaj Kya Banaye?" },
       { name: "description", content: "Today's breakfast, lunch and dinner with real-time macros and one-tap swaps." },
-      { property: "og:title", content: "Today · Thali" },
+      { property: "og:title", content: "Today · Aaj Kya Banaye?" },
       { property: "og:description", content: "Today's Indian vegetarian meals with macros and swaps." },
     ],
   }),
@@ -60,7 +60,7 @@ function Dashboard() {
   const streak = computeStreak(log, start, dayIdx);
 
   const onShare = async () => {
-    const res = await shareOrCopy("Today · Thali", todaySummary(today, dayIdx));
+    const res = await shareOrCopy("Today · Aaj Kya Banaye?", todaySummary(today, dayIdx));
     if (res === "copied") toast.success("Copied plan to clipboard");
     else if (res === "failed") toast.error("Could not share");
   };

@@ -11,9 +11,9 @@ import type { Dish } from "@/lib/dishes";
 export const Route = createFileRoute("/snacks")({
   head: () => ({
     meta: [
-      { title: "Snacks · Thali" },
+      { title: "Snacks · Aaj Kya Banaye?" },
       { name: "description", content: "Pick a craving and get quick Indian vegetarian snack suggestions that match how you feel." },
-      { property: "og:title", content: "Snacks · Thali" },
+      { property: "og:title", content: "Snacks · Aaj Kya Banaye?" },
       { property: "og:description", content: "Craving-based snack suggestions for your Indian vegetarian meal plan." },
     ],
   }),

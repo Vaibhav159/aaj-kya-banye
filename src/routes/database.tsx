@@ -19,9 +19,9 @@ import { DishDetailDialog } from "@/components/dish-detail";
 export const Route = createFileRoute("/database")({
   head: () => ({
     meta: [
-      { title: "Dish Database · Thali" },
+      { title: "Dish Database · Aaj Kya Banaye?" },
       { name: "description", content: "Searchable database of Indian vegetarian dishes with calorie and macro details." },
-      { property: "og:title", content: "Dish Database · Thali" },
+      { property: "og:title", content: "Dish Database · Aaj Kya Banaye?" },
       { property: "og:description", content: "Browse Indian vegetarian dishes with kcal, protein, carbs and fat." },
     ],
   }),

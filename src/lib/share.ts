@@ -7,7 +7,7 @@ export function todaySummary(day: DayPlan, dayIdx: number): string {
   const d = DISHES_BY_ID[day.dinner];
   const kcal = (b?.kcal ?? 0) + (l?.kcal ?? 0) + (d?.kcal ?? 0);
   return [
-    `🍛 Thali · Day ${dayIdx + 1} of 42`,
+    `🍛 Aaj Kya Banaye? · Day ${dayIdx + 1} of 42`,
     ``,
     `🌅 Breakfast — ${b?.emoji ?? ""} ${b?.name ?? ""} (${b?.kcal ?? 0} kcal)`,
     `🍛 Lunch — ${l?.emoji ?? ""} ${l?.name ?? ""} (${l?.kcal ?? 0} kcal)`,
@@ -19,7 +19,7 @@ export function todaySummary(day: DayPlan, dayIdx: number): string {
 
 export function weekSummary(plan: DayPlan[], startIdx: number): string {
   const days = Array.from({ length: 7 }, (_, i) => plan[(startIdx + i) % 42]);
-  const lines = ["🍛 Thali · Next 7 days", ""];
+  const lines = ["🍛 Aaj Kya Banaye? · Next 7 days", ""];
   days.forEach((d, i) => {
     const b = DISHES_BY_ID[d.breakfast]?.name;
     const l = DISHES_BY_ID[d.lunch]?.name;

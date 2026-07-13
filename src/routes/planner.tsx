@@ -11,9 +11,9 @@ import { buildIcs, downloadIcs } from "@/lib/ical";
 export const Route = createFileRoute("/planner")({
   head: () => ({
     meta: [
-      { title: "Planner · Thali" },
+      { title: "Planner · Aaj Kya Banaye?" },
       { name: "description", content: "Rolling 7-day view and full 42-day rotation of your Indian vegetarian meal plan." },
-      { property: "og:title", content: "Planner · Thali" },
+      { property: "og:title", content: "Planner · Aaj Kya Banaye?" },
       { property: "og:description", content: "7-day and 42-day meal planner with calorie totals." },
     ],
   }),
@@ -35,7 +35,7 @@ function PlannerPage() {
   const startDate = new Date();
 
   const onShare = async () => {
-    const r = await shareOrCopy("Thali · Next 7 days", weekSummary(plan, dayIdx));
+    const r = await shareOrCopy("Aaj Kya Banaye? · Next 7 days", weekSummary(plan, dayIdx));
     if (r === "copied") toast.success("Weekly summary copied");
     else if (r === "failed") toast.error("Could not share");
   };
