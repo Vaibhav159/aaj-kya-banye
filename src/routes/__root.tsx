@@ -8,6 +8,8 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { useProfile, useCycleStart, useOverrides } from "@/lib/store";
+import { saveCalendarFeed } from "@/lib/calendar-server";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -122,6 +124,50 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function CalendarSyncObserver() {
+  const { profile, hydrated: profileHydrated } = useProfile();
+  const { start, hydrated: startHydrated } = useCycleStart();
+  const { overrides, hydrated: overridesHydrated } = useOverrides();
+
+  useEffect(() => {
+    if (!profileHydrated || !startHydrated || !overridesHydrated) return;
+    if (typeof window === "undefined") return;
+
+    const feedId = window.localStorage.getItem("thali:calendarFeedId");
+    if (!feedId) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        await saveCalendarFeed({
+          id: feedId,
+          start,
+          overrides,
+          times: {
+            breakfast: profile.breakfastTime,
+            lunch: profile.lunchTime,
+            dinner: profile.dinnerTime,
+          },
+        });
+      } catch (err) {
+        console.error("Failed to sync calendar feed with server:", err);
+      }
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [
+    profileHydrated,
+    startHydrated,
+    overridesHydrated,
+    profile.breakfastTime,
+    profile.lunchTime,
+    profile.dinnerTime,
+    start,
+    overrides,
+  ]);
+
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
@@ -135,6 +181,7 @@ function RootComponent() {
         <SiteFooter />
         <Toaster richColors position="top-center" />
         <BottomNav />
+        <CalendarSyncObserver />
       </div>
     </QueryClientProvider>
   );
