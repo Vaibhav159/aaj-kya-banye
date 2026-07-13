@@ -195,8 +195,15 @@ export function useCustomDishes() {
       return next;
     });
   }, []);
+  const update = useCallback((id: string, patch: Partial<Omit<CustomDish, "custom" | "id">>) => {
+    setDishes((prev) => {
+      const next = prev.map((x) => (x.id === id ? { ...x, ...patch } : x));
+      persist(next);
+      return next;
+    });
+  }, []);
   const remove = useCallback((id: string) => {
     setDishes((prev) => { const next = prev.filter((x) => x.id !== id); persist(next); return next; });
   }, []);
-  return { dishes, add, remove, hydrated };
+  return { dishes, add, update, remove, hydrated };
 }
