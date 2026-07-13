@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DEFAULT_PROFILE, useCycleStart, useProfile, type Profile } from "@/lib/store";
+import { DEFAULT_PROFILE, useCycleStart, useProfile, type Profile, syncAllData } from "@/lib/store";
 import { buildIcs, downloadIcs } from "@/lib/ical";
 import { applyOverrides, currentDayIndex, useOverrides } from "@/lib/store";
 import { saveCalendarFeed } from "@/lib/calendar-server";
+import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -29,9 +30,106 @@ function SettingsPage() {
   const [form, setForm] = useState<Profile>(DEFAULT_PROFILE);
   const [feedId, setFeedId] = useState("");
 
+  const [user, setUser] = useState<any>(null);
+  const [syncLoading, setSyncLoading] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   useEffect(() => {
     if (hydrated) setForm(profile);
   }, [hydrated, profile]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+      setSyncLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast.error("Please enter email and password");
+      return;
+    }
+    setSyncLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Signed in successfully!");
+        setEmail("");
+        setPassword("");
+        await syncAllData();
+      }
+    } catch (err: any) {
+      toast.error(`Sync failed: ${err.message || err}`);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast.error("Please enter email and password");
+      return;
+    }
+    setSyncLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Account created! Please check your email or sign in.");
+        setEmail("");
+        setPassword("");
+        if (data?.user) {
+          await syncAllData();
+        }
+      }
+    } catch (err: any) {
+      toast.error(`Sync failed: ${err.message || err}`);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    setSyncLoading(true);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Signed out successfully!");
+        window.dispatchEvent(new Event("thali:sync"));
+      }
+    } catch (err: any) {
+      toast.error(err.message || String(err));
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  const handleManualSync = async () => {
+    setSyncLoading(true);
+    try {
+      await syncAllData();
+      toast.success("Sync completed successfully!");
+    } catch (err: any) {
+      toast.error(`Sync failed: ${err.message || err}`);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -59,13 +157,15 @@ function SettingsPage() {
       
       try {
         await saveCalendarFeed({
-          id: newId,
-          start,
-          overrides,
-          times: {
-            breakfast: form.breakfastTime,
-            lunch: form.lunchTime,
-            dinner: form.dinnerTime,
+          data: {
+            id: newId,
+            start,
+            overrides,
+            times: {
+              breakfast: form.breakfastTime,
+              lunch: form.lunchTime,
+              dinner: form.dinnerTime,
+            },
           },
         });
         toast.success("Calendar subscription enabled!");
@@ -128,6 +228,69 @@ function SettingsPage() {
         <Button onClick={() => { save(form); toast.success("Settings saved"); }}>Save</Button>
         <Button variant="outline" onClick={() => { reset(); toast.success("Cycle restarted at day 1"); }}>Restart 42-day cycle</Button>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Cloud Backup & Sync</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {syncLoading ? (
+            <div className="py-4 text-center text-sm text-muted-foreground">Loading sync status...</div>
+          ) : user ? (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-success/30 bg-success/5 p-4 text-sm">
+                <div>
+                  <div className="font-semibold text-success flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-success inline-block"></span>
+                    Sync Active
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">Logged in as {user.email}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={handleManualSync}>
+                    Sync Now
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={handleSignOut}>
+                    Sign Out
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Back up your meal log, custom rules, and overrides to the cloud to access them across devices.
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Email Address">
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </Field>
+                <Field label="Password">
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button size="sm" onClick={handleSignIn}>
+                  Sign In
+                </Button>
+                <Button size="sm" variant="secondary" onClick={handleSignUp}>
+                  Create Account
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><CardTitle>Reminders & sync</CardTitle></CardHeader>

@@ -14,11 +14,11 @@ Prioritized backlog. Agents: build from top down when asked "what's next." Updat
 - ✅ Share via Web Share API / clipboard
 
 ### P1
-- ⬜ Sync current db with https://docs.google.com/spreadsheets/d/1zVWajno7F7b947-6vz8-uSgSGUkJoP4vNAKAtfbds6E/edit?gid=744516389#gid=744516389
-- ⬜ Animated page transitions (View Transitions API or route-level)
-- ⬜ Cloud sync (Supabase) with optional auth, where users, meal logging, and plans are saved in db.
-- ⬜ Weekly nutrition summary chart on history page
-- ⬜ Drag-and-drop meal reordering in planner
+- ✅ Sync current db with https://docs.google.com/spreadsheets/d/1zVWajno7F7b947-6vz8-uSgSGUkJoP4vNAKAtfbds6E/edit?gid=744516389#gid=744516389
+- ✅ Animated page transitions (View Transitions API or route-level)
+- ✅ Cloud sync (Supabase) with optional auth, where users, meal logging, and plans are saved in db.
+- ✅ Weekly nutrition summary chart on history page
+- ✅ Drag-and-drop meal reordering in planner
 
 ### P2 — Content & intelligence
 - ⬜ Meal photo integration (upload or generate per dish)

@@ -85,6 +85,7 @@ Keyboard navigation, focus states, semantic HTML, screen reader support, `prefer
 - **Custom React hooks + localStorage** (no Zustand)
 - All state hooks live in `src/lib/store.ts`
 - Pattern: `useState` + `useEffect` hydration from localStorage + `useCallback` persist
+- **Supabase** (`@supabase/supabase-js`) for cloud backup, synchronization, and user authentication
 
 ## Forms
 - **React Hook Form** + **Zod** (installed, use for complex forms)
@@ -113,7 +114,7 @@ src/
 │
 ├── lib/                 # ALL business logic
 │   ├── store.ts         # State hooks: profile, cycle, overrides, meal log, custom dishes
-│   ├── dishes.ts        # Dish database (64 dishes), types, helpers
+│   ├── dishes.ts        # Dish database (73 dishes), types, helpers
 │   ├── plan.ts          # 42-day plan generation algorithm
 │   ├── rules.ts         # 8 built-in nutrition rules + rule checker
 │   ├── custom-rules.ts  # User-configurable rules engine
@@ -122,6 +123,7 @@ src/
 │   ├── ical.ts          # iCal (.ics) generation
 │   ├── share.ts         # Web Share API / clipboard fallback
 │   ├── calendar-server.ts  # Cloudflare calendar feed sync
+│   ├── supabase.ts      # Supabase client initialization
 │   └── utils.ts         # cn() utility
 │
 ├── routes/              # TanStack Router file-based routes

@@ -139,13 +139,15 @@ function CalendarSyncObserver() {
     const timer = setTimeout(async () => {
       try {
         await saveCalendarFeed({
-          id: feedId,
-          start,
-          overrides,
-          times: {
-            breakfast: profile.breakfastTime,
-            lunch: profile.lunchTime,
-            dinner: profile.dinnerTime,
+          data: {
+            id: feedId,
+            start,
+            overrides,
+            times: {
+              breakfast: profile.breakfastTime,
+              lunch: profile.lunchTime,
+              dinner: profile.dinnerTime,
+            },
           },
         });
       } catch (err) {
@@ -175,7 +177,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen flex flex-col">
         <SiteHeader />
-        <main className="flex-1 pb-20 md:pb-0">
+        <main className="flex-1 pb-20 md:pb-0" style={{ viewTransitionName: "main-content" } as React.CSSProperties}>
           <Outlet />
         </main>
         <SiteFooter />
