@@ -83,4 +83,5 @@ Pushes to `main` auto-deploy via GitHub Actions to GitHub Pages. The build scrip
 
 ## License
 
-Private project.
+This project is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE). It is free for personal, non-commercial use only.
+

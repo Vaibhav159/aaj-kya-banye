@@ -9,7 +9,7 @@ import { DEFAULT_PROFILE, useCycleStart, useProfile, type Profile, syncAllData }
 import { buildIcs, downloadIcs } from "@/lib/ical";
 import { applyOverrides, currentDayIndex, useOverrides } from "@/lib/store";
 import { saveCalendarFeed } from "@/lib/calendar-server";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -280,7 +280,13 @@ function SettingsPage() {
           <CardTitle>Cloud Backup & Sync</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {syncLoading ? (
+          {!isSupabaseConfigured ? (
+            <div className="rounded-lg border border-dashed border-border bg-muted/40 p-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                Cloud Sync is disabled. Configure <code className="font-mono text-xs bg-muted px-1 rounded">VITE_SUPABASE_URL</code> and <code className="font-mono text-xs bg-muted px-1 rounded">VITE_SUPABASE_ANON_KEY</code> to enable backup & sync.
+              </p>
+            </div>
+          ) : syncLoading ? (
             <div className="py-4 text-center text-sm text-muted-foreground">Loading sync status...</div>
           ) : user ? (
             <div className="space-y-4">
