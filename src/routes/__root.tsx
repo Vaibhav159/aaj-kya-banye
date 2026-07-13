@@ -7,9 +7,21 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
-import { useProfile, useCycleStart, useOverrides } from "@/lib/store";
+import { useEffect, useState, useMemo, type ReactNode } from "react";
+import { useProfile, useCycleStart, useOverrides, useCustomDishes } from "@/lib/store";
 import { saveCalendarFeed } from "@/lib/calendar-server";
+import { DISHES, type Dish } from "@/lib/dishes";
+import { SNACKS } from "@/lib/snacks";
+import { DishDetailDialog } from "@/components/dish-detail";
+import { Search } from "lucide-react";
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -170,13 +182,52 @@ function CalendarSyncObserver() {
   return null;
 }
 
+function fuzzyMatch(text: string, query: string): boolean {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const target = text.toLowerCase();
+  return words.every((word) => target.includes(word));
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedItem, setSelectedItem] = useState<Dish | null>(null);
+
+  const { dishes: customDishes } = useCustomDishes();
+
+  const allDishes = useMemo(() => {
+    const map = new Map<string, Dish>();
+    DISHES.forEach((d) => map.set(d.id, d));
+    customDishes.forEach((d) => map.set(d.id, d));
+    return Array.from(map.values());
+  }, [customDishes]);
+
+  const filteredDishes = useMemo(() => {
+    if (!searchQuery.trim()) return allDishes.slice(0, 5);
+    return allDishes.filter((d) => fuzzyMatch(d.name, searchQuery)).slice(0, 15);
+  }, [searchQuery, allDishes]);
+
+  const filteredSnacks = useMemo(() => {
+    if (!searchQuery.trim()) return SNACKS.slice(0, 5);
+    return SNACKS.filter((s) => fuzzyMatch(s.name, searchQuery)).slice(0, 15);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setSearchOpen((o) => !o);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen flex flex-col">
-        <SiteHeader />
+        <SiteHeader onSearchClick={() => setSearchOpen(true)} />
         <main className="flex-1 pb-20 md:pb-0" style={{ viewTransitionName: "main-content" } as React.CSSProperties}>
           <Outlet />
         </main>
@@ -184,12 +235,79 @@ function RootComponent() {
         <Toaster richColors position="top-center" />
         <BottomNav />
         <CalendarSyncObserver />
+
+        <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
+          <CommandInput
+            placeholder="Type a dish or snack..."
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+          />
+          <CommandList>
+            {filteredDishes.length === 0 && filteredSnacks.length === 0 && (
+              <CommandEmpty>No results found.</CommandEmpty>
+            )}
+
+            {filteredDishes.length > 0 && (
+              <CommandGroup heading="Dishes">
+                {filteredDishes.map((d) => (
+                  <CommandItem
+                    key={d.id}
+                    onSelect={() => {
+                      setSelectedItem(d);
+                      setSearchOpen(false);
+                      setSearchQuery("");
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <span className="mr-2 text-xl">{d.emoji}</span>
+                    <span>{d.name}</span>
+                    {d.cuisine && (
+                      <span className="ml-2 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] capitalize text-secondary-foreground">
+                        {d.cuisine.replace(/-/g, " ")}
+                      </span>
+                    )}
+                    <span className="ml-auto text-xs text-muted-foreground font-mono">{d.kcal} kcal</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {filteredSnacks.length > 0 && (
+              <CommandGroup heading="Snacks">
+                {filteredSnacks.map((s) => (
+                  <CommandItem
+                    key={s.id}
+                    onSelect={() => {
+                      setSelectedItem(s);
+                      setSearchOpen(false);
+                      setSearchQuery("");
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <span className="mr-2 text-xl">{s.emoji}</span>
+                    <span>{s.name}</span>
+                    <span className="ml-2 rounded-full bg-warning/15 px-1.5 py-0.5 text-[10px] text-warning-foreground dark:text-warning font-medium">
+                      Snack
+                    </span>
+                    <span className="ml-auto text-xs text-muted-foreground font-mono">{s.kcal} kcal</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </CommandDialog>
+
+        <DishDetailDialog
+          dish={selectedItem}
+          open={selectedItem !== null}
+          onOpenChange={(o) => !o && setSelectedItem(null)}
+        />
       </div>
     </QueryClientProvider>
   );
 }
 
-function SiteHeader() {
+function SiteHeader({ onSearchClick }: { onSearchClick: () => void }) {
   const links: { to: string; label: string }[] = [
     { to: "/", label: "Today" },
     { to: "/planner", label: "Planner" },
@@ -203,12 +321,25 @@ function SiteHeader() {
   ];
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3">
+      <div className="mx-auto grid grid-cols-[1fr_auto_auto] md:grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-3">
         <Link to="/" className="flex min-w-0 items-center gap-2">
           <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground text-lg">🍛</span>
           <span className="truncate font-display text-xl font-semibold">Aaj Kya Banaye?</span>
         </Link>
-        <nav className="hidden md:flex flex-wrap items-center gap-1 text-sm">
+
+        {/* Global Search trigger button */}
+        <button
+          onClick={onSearchClick}
+          className="flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:max-w-xs md:w-full ml-auto md:ml-4 select-none"
+        >
+          <Search className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Search dishes & snacks...</span>
+          <kbd className="pointer-events-none hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground ml-auto">
+            <span className="text-xs">⌘</span>K
+          </kbd>
+        </button>
+
+        <nav className="hidden md:flex flex-wrap items-center gap-1 text-sm justify-end">
           {links.map((l) => (
             <Link
               key={l.to}

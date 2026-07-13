@@ -61,6 +61,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
 }
@@ -83,6 +85,8 @@
   --accent-foreground: oklch(0.99 0.01 85);
   --success: oklch(0.62 0.14 145);
   --success-foreground: oklch(0.99 0.01 85);
+  --warning: oklch(0.79 0.16 65);
+  --warning-foreground: oklch(0.24 0.04 40);
   --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: oklch(0.99 0.01 85);
   --border: oklch(0.88 0.03 75);
@@ -120,6 +124,8 @@
   --muted-foreground: oklch(0.704 0.04 256.788);
   --accent: oklch(0.279 0.041 260.031);
   --accent-foreground: oklch(0.984 0.003 247.858);
+  --warning: oklch(0.79 0.16 65);
+  --warning-foreground: oklch(0.129 0.042 264.695);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.984 0.003 247.858);
   --border: oklch(1 0 0 / 10%);

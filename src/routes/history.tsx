@@ -22,7 +22,9 @@ import {
   useMealLog,
   useOverrides,
   useProfile,
+  getMealDisplayStatus,
 } from "@/lib/store";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -119,10 +121,14 @@ function HistoryPage() {
     return days;
   }, [log, start, plan]);
 
-  // Adherence per day (0..3) for the current cycle
-  const perDay = Array.from({ length: 42 }, (_, i) => {
-    return SLOTS.filter((s) => log[logKey(start, i, s)]?.status === "eaten").length;
-  });
+  // Adherence and skipped meals per day for the current cycle
+  const perDayData = useMemo(() => {
+    return Array.from({ length: 42 }, (_, i) => {
+      const eaten = SLOTS.filter((s) => log[logKey(start, i, s)]?.status === "eaten").length;
+      const skipped = SLOTS.filter((s) => log[logKey(start, i, s)]?.status === "skipped").length;
+      return { eaten, skipped };
+    });
+  }, [log, start]);
 
   // Top dishes
   const dishCount: Record<string, number> = {};
@@ -149,6 +155,85 @@ function HistoryPage() {
     kcal: { label: "Calories", color: "var(--color-primary)" },
     protein: { label: "Protein", color: "var(--color-accent)" },
   };
+
+  // Detailed chronological logs
+  const detailedLogs = useMemo(() => {
+    interface LogDetailItem {
+      key: string;
+      dayIdx: number;
+      slot: Slot | "snack";
+      dishId: string;
+      name: string;
+      emoji: string;
+      status: "eaten" | "skipped" | "delayed";
+      loggedAt: number;
+      targetTimeStr?: string;
+    }
+
+    const list: LogDetailItem[] = [];
+    Object.entries(log).forEach(([key, entry]) => {
+      const parts = key.split("-");
+      if (parts[0] !== String(start)) return;
+
+      const dayPart = parts[1];
+      if (!dayPart || !dayPart.startsWith("d")) return;
+      const dIdx = parseInt(dayPart.substring(1), 10);
+
+      const slot = parts[2] as Slot | "snack";
+      let dishId = "";
+      let name = "";
+      let emoji = "";
+      let targetTimeStr = "";
+
+      if (slot === "breakfast" || slot === "lunch" || slot === "dinner") {
+        dishId = plan[dIdx][slot];
+        const dish = DISHES_BY_ID[dishId];
+        if (dish) {
+          name = dish.name;
+          emoji = dish.emoji;
+        }
+        targetTimeStr =
+          slot === "breakfast"
+            ? profile.breakfastTime
+            : slot === "lunch"
+              ? profile.lunchTime
+              : profile.dinnerTime;
+      } else if (slot === "snack") {
+        dishId = parts[3];
+        const snack = SNACKS_BY_ID[dishId];
+        if (snack) {
+          name = snack.name;
+          emoji = snack.emoji;
+        }
+      }
+
+      if (!name) return;
+
+      const displayStatus = getMealDisplayStatus(entry, slot === "snack" ? "breakfast" : slot, dIdx, start, profile);
+      const status: "eaten" | "skipped" | "delayed" =
+        slot === "snack"
+          ? "eaten"
+          : displayStatus === "delayed"
+            ? "delayed"
+            : entry.status === "skipped"
+              ? "skipped"
+              : "eaten";
+
+      list.push({
+        key,
+        dayIdx: dIdx,
+        slot,
+        dishId,
+        name,
+        emoji,
+        status,
+        loggedAt: entry.at,
+        targetTimeStr: slot !== "snack" ? targetTimeStr : undefined,
+      });
+    });
+
+    return list.sort((a, b) => b.loggedAt - a.loggedAt);
+  }, [log, start, plan, profile]);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
@@ -220,28 +305,45 @@ function HistoryPage() {
         <CardHeader><CardTitle>42-day heatmap</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 gap-1.5 sm:grid-cols-14">
-            {perDay.map((n, i) => {
-              const opacity = n === 0 ? 0.1 : 0.25 + n * 0.25;
+            {perDayData.map(({ eaten, skipped }, i) => {
               const isToday = i === dayIdx;
+              
+              let background = "";
+              if (skipped > 0) {
+                const skipWeight = skipped / 3;
+                background = `color-mix(in oklch, var(--color-destructive) ${Math.round(skipWeight * 100)}%, var(--color-muted))`;
+              } else if (eaten > 0) {
+                const opacity = 0.25 + eaten * 0.25;
+                background = `color-mix(in oklch, var(--color-success) ${Math.round(opacity * 100)}%, var(--color-muted))`;
+              } else {
+                background = "color-mix(in oklch, var(--color-foreground) 10%, var(--color-muted))";
+              }
+
               return (
                 <div
                   key={i}
-                  title={`Day ${i + 1}: ${n}/3 eaten`}
+                  title={`Day ${i + 1}: ${eaten}/3 eaten, ${skipped}/3 skipped`}
                   className={
-                    "aspect-square rounded-md " +
-                    (isToday ? "ring-2 ring-primary" : "")
+                    "aspect-square rounded-md transition hover:scale-105 " +
+                    (isToday ? "ring-2 ring-primary ring-offset-2" : "")
                   }
-                  style={{ background: `color-mix(in oklch, var(--color-success) ${Math.round(opacity * 100)}%, var(--color-muted))` }}
+                  style={{ background }}
                 />
               );
             })}
           </div>
-          <div className="mt-3 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
-            <span>less</span>
-            {[0.1, 0.5, 0.75, 1].map((o, i) => (
-              <div key={i} className="h-3 w-3 rounded-sm" style={{ background: `color-mix(in oklch, var(--color-success) ${o * 100}%, var(--color-muted))` }} />
-            ))}
-            <span>more</span>
+          <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <span>Skipped:</span>
+              <div className="h-3 w-3 rounded-sm bg-destructive" />
+            </div>
+            <div className="flex items-center gap-1">
+              <span>less eaten</span>
+              {[0.25, 0.5, 0.75, 1.0].map((o, i) => (
+                <div key={i} className="h-3 w-3 rounded-sm" style={{ background: `color-mix(in oklch, var(--color-success) ${o * 100}%, var(--color-muted))` }} />
+              ))}
+              <span>more eaten</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -286,6 +388,66 @@ function HistoryPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-display text-2xl">Detailed Log History</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {detailedLogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No meals logged yet. Log some meals on the Today page to see them here.</p>
+          ) : (
+            <div className="overflow-x-auto max-h-[400px] overflow-y-auto pr-1">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground sticky top-0 z-10">
+                  <tr>
+                    <th className="px-4 py-2">Logged At</th>
+                    <th className="px-4 py-2">Day</th>
+                    <th className="px-4 py-2">Meal / Slot</th>
+                    <th className="px-4 py-2">Dish</th>
+                    <th className="px-4 py-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detailedLogs.map((item) => {
+                    const dateStr = new Date(item.loggedAt).toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    });
+
+                    const statusColors = {
+                      eaten: "bg-success/15 text-success border-success/30",
+                      delayed: "bg-warning/15 text-warning-foreground dark:text-warning border-warning/30",
+                      skipped: "bg-destructive/15 text-destructive border-destructive/30",
+                    };
+
+                    return (
+                      <tr key={item.key} className="border-t border-border/60 hover:bg-secondary/20">
+                        <td className="px-4 py-2.5 whitespace-nowrap text-muted-foreground">{dateStr}</td>
+                        <td className="px-4 py-2.5 whitespace-nowrap font-medium">Day {item.dayIdx + 1}</td>
+                        <td className="px-4 py-2.5 whitespace-nowrap capitalize text-muted-foreground">
+                          {item.slot} {item.targetTimeStr && `(${item.targetTimeStr})`}
+                        </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap flex items-center gap-2">
+                          <span className="text-xl">{item.emoji}</span>
+                          <span className="font-medium text-foreground">{item.name}</span>
+                        </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${statusColors[item.status]}`}>
+                            {item.status === "delayed" ? "delayed" : item.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
