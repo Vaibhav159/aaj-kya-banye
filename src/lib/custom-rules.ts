@@ -1,0 +1,109 @@
+import { useCallback, useEffect, useState } from "react";
+import type { Cuisine, CookingType, Equipment, Dish, DishTag, Slot } from "./dishes";
+
+export type RuleKind = "avoid" | "prefer" | "require";
+export type RuleScope = "any" | "breakfast" | "lunch" | "dinner";
+
+export interface RuleMatch {
+  cuisine?: Cuisine;
+  cookingType?: CookingType;
+  equipment?: Equipment;
+  tag?: DishTag;
+  maxPrepMinutes?: number;
+  maxSpice?: 0 | 1 | 2 | 3;
+}
+
+export interface CustomRule {
+  id: string;
+  label: string;
+  kind: RuleKind;
+  scope: RuleScope;
+  match: RuleMatch;
+  enabled: boolean;
+}
+
+const KEY = "thali:customRules";
+
+export const EXAMPLE_RULES: CustomRule[] = [
+  { id: "r-airfryer-dinner", label: "Airfryer-only dinners", kind: "require", scope: "dinner", match: { equipment: "airfryer" }, enabled: false },
+  { id: "r-no-fried", label: "No fried food at dinner", kind: "avoid", scope: "dinner", match: { cookingType: "fried" }, enabled: false },
+  { id: "r-quick-weekday", label: "Prefer quick meals (≤ 20 min)", kind: "prefer", scope: "any", match: { maxPrepMinutes: 20 }, enabled: false },
+  { id: "r-mild-spice", label: "Mild spice only", kind: "require", scope: "any", match: { maxSpice: 1 }, enabled: false },
+];
+
+function read(): CustomRule[] {
+  if (typeof window === "undefined") return EXAMPLE_RULES;
+  try {
+    const raw = window.localStorage.getItem(KEY);
+    if (!raw) return EXAMPLE_RULES;
+    return JSON.parse(raw) as CustomRule[];
+  } catch {
+    return EXAMPLE_RULES;
+  }
+}
+
+export function useCustomRules() {
+  const [rules, setRules] = useState<CustomRule[]>(EXAMPLE_RULES);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setRules(read());
+    setHydrated(true);
+  }, []);
+  const persist = (next: CustomRule[]) => {
+    setRules(next);
+    if (typeof window !== "undefined") window.localStorage.setItem(KEY, JSON.stringify(next));
+  };
+  const add = useCallback((r: Omit<CustomRule, "id">) => {
+    const id = `r-${Date.now().toString(36)}`;
+    persist([...read(), { ...r, id }]);
+  }, []);
+  const update = useCallback((id: string, patch: Partial<CustomRule>) => {
+    persist(read().map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  }, []);
+  const remove = useCallback((id: string) => persist(read().filter((r) => r.id !== id)), []);
+  const toggle = useCallback((id: string) => {
+    persist(read().map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r)));
+  }, []);
+  return { rules, hydrated, add, update, remove, toggle };
+}
+
+/** Does the dish satisfy this match block? */
+export function dishMatches(dish: Dish, m: RuleMatch): boolean {
+  if (m.cuisine && dish.cuisine !== m.cuisine) return false;
+  if (m.cookingType && dish.cookingType !== m.cookingType) return false;
+  if (m.equipment && !(dish.equipment ?? []).includes(m.equipment)) return false;
+  if (m.tag && !dish.tags.includes(m.tag)) return false;
+  if (m.maxPrepMinutes !== undefined && (dish.prepMinutes ?? 30) > m.maxPrepMinutes) return false;
+  if (m.maxSpice !== undefined && (dish.spiceLevel ?? 1) > m.maxSpice) return false;
+  return true;
+}
+
+/** True when the dish is permitted in this slot by all "require"/"avoid" rules. */
+export function passesRules(dish: Dish, slot: Slot, rules: CustomRule[]): boolean {
+  for (const r of rules) {
+    if (!r.enabled) continue;
+    if (r.scope !== "any" && r.scope !== slot) continue;
+    const matches = dishMatches(dish, r.match);
+    if (r.kind === "require" && !matches) return false;
+    if (r.kind === "avoid" && matches) return false;
+  }
+  return true;
+}
+
+/** Positive score = preferred, 0 = neutral. */
+export function preferenceScore(dish: Dish, slot: Slot, rules: CustomRule[]): number {
+  let s = 0;
+  for (const r of rules) {
+    if (!r.enabled || r.kind !== "prefer") continue;
+    if (r.scope !== "any" && r.scope !== slot) continue;
+    if (dishMatches(dish, r.match)) s += 1;
+  }
+  return s;
+}
+
+export const RULE_FIELD_OPTIONS = {
+  cuisine: ["north-indian", "south-indian", "gujarati", "punjabi", "bengali", "maharashtrian", "indo-chinese", "continental"] as Cuisine[],
+  cookingType: ["stovetop", "no-cook", "steamed", "baked", "fried", "grilled", "instant-pot"] as CookingType[],
+  equipment: ["stove", "oven", "airfryer", "microwave", "blender", "pressure-cooker", "griddle"] as Equipment[],
+  tag: ["pizza", "paratha", "fried-breakfast", "dal", "legume", "leafy", "sweet", "light"] as DishTag[],
+};

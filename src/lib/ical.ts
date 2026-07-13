@@ -1,11 +1,12 @@
 import { DISHES_BY_ID } from "./dishes";
 import type { DayPlan } from "./plan";
 
-const SLOT_HOURS: Record<"breakfast" | "lunch" | "dinner", [number, number]> = {
-  breakfast: [8, 9],
-  lunch: [13, 14],
-  dinner: [20, 21],
-};
+export interface SlotTimes { breakfast: string; lunch: string; dinner: string }
+const DEFAULT_TIMES: SlotTimes = { breakfast: "08:00", lunch: "13:00", dinner: "20:00" };
+function parseHM(s: string): [number, number] {
+  const [h, m] = s.split(":").map(Number);
+  return [Number.isFinite(h) ? h : 8, Number.isFinite(m) ? m : 0];
+}
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 function fmt(dt: Date): string {
@@ -23,7 +24,7 @@ function esc(s: string): string {
   return s.replace(/[\\;,]/g, (m) => "\\" + m).replace(/\n/g, "\\n");
 }
 
-export function buildIcs(plan: DayPlan[], startIdx: number, days: number, startDate: Date = new Date()): string {
+export function buildIcs(plan: DayPlan[], startIdx: number, days: number, startDate: Date = new Date(), times: SlotTimes = DEFAULT_TIMES): string {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -38,9 +39,9 @@ export function buildIcs(plan: DayPlan[], startIdx: number, days: number, startD
       if (!dish) return;
       const date = new Date(startDate);
       date.setDate(date.getDate() + i);
-      const [sh, eh] = SLOT_HOURS[slot];
-      const start = new Date(date); start.setHours(sh, 0, 0, 0);
-      const end = new Date(date); end.setHours(eh, 0, 0, 0);
+      const [sh, sm] = parseHM(times[slot]);
+      const start = new Date(date); start.setHours(sh, sm, 0, 0);
+      const end = new Date(start.getTime() + 60 * 60 * 1000);
       lines.push(
         "BEGIN:VEVENT",
         `UID:thali-${startIdx + i}-${slot}-${dish.id}@thali`,

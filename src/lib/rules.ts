@@ -1,4 +1,5 @@
 import { DISHES_BY_ID, type Dish, type Slot } from "./dishes";
+import { passesRules, type CustomRule } from "./custom-rules";
 
 export interface Rule {
   id: string;
@@ -73,7 +74,7 @@ export function checkDay(plan: WeekPlan, dayIdx: number): RuleCheck[] {
 }
 
 /** True if placing `dish` in `slot` on `dayIdx` violates no immediate rules. */
-export function isSwapAllowed(dish: Dish, slot: Slot, dayIdx: number, plan: WeekPlan): boolean {
+export function isSwapAllowed(dish: Dish, slot: Slot, dayIdx: number, plan: WeekPlan, customRules: CustomRule[] = []): boolean {
   if (!dish.slots.includes(slot)) return false;
 
   // Rule 2: paratha not at dinner
@@ -91,6 +92,9 @@ export function isSwapAllowed(dish: Dish, slot: Slot, dayIdx: number, plan: Week
 
   // Rule 7 (soft): dinner shouldn't exceed lunch by more than 50 kcal
   if (slot === "dinner" && dish.kcal > (DISHES_BY_ID[next[dayIdx].lunch]?.kcal ?? 0) + 50) return false;
+
+  // User custom rules
+  if (!passesRules(dish, slot, customRules)) return false;
 
   return true;
 }
