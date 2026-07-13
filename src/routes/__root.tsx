@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { BottomNav } from "@/components/bottom-nav";
 
 function NotFoundComponent() {
   return (
@@ -128,11 +129,12 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen flex flex-col">
         <SiteHeader />
-        <main className="flex-1">
+        <main className="flex-1 pb-20 md:pb-0">
           <Outlet />
         </main>
         <SiteFooter />
         <Toaster richColors position="top-center" />
+        <BottomNav />
       </div>
     </QueryClientProvider>
   );
@@ -142,19 +144,22 @@ function SiteHeader() {
   const links: { to: string; label: string }[] = [
     { to: "/", label: "Today" },
     { to: "/planner", label: "Planner" },
+    { to: "/decide", label: "Decide" },
+    { to: "/history", label: "History" },
     { to: "/snacks", label: "Snacks" },
     { to: "/grocery", label: "Grocery" },
     { to: "/database", label: "Dishes" },
+    { to: "/rules", label: "Rules" },
     { to: "/settings", label: "Settings" },
   ];
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <Link to="/" className="flex items-center gap-2">
+      <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3">
+        <Link to="/" className="flex min-w-0 items-center gap-2">
           <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground text-lg">🍛</span>
-          <span className="font-display text-xl font-semibold">Thali</span>
+          <span className="truncate font-display text-xl font-semibold">Thali</span>
         </Link>
-        <nav className="flex flex-wrap items-center gap-1 text-sm">
+        <nav className="hidden md:flex flex-wrap items-center gap-1 text-sm">
           {links.map((l) => (
             <Link
               key={l.to}

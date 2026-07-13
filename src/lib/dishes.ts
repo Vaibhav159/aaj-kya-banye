@@ -17,6 +17,34 @@ export interface Ingredient {
   category: IngredientCategory;
 }
 
+export type Cuisine =
+  | "north-indian"
+  | "south-indian"
+  | "gujarati"
+  | "punjabi"
+  | "bengali"
+  | "maharashtrian"
+  | "indo-chinese"
+  | "continental";
+
+export type CookingType =
+  | "stovetop"
+  | "no-cook"
+  | "steamed"
+  | "baked"
+  | "fried"
+  | "grilled"
+  | "instant-pot";
+
+export type Equipment =
+  | "stove"
+  | "oven"
+  | "airfryer"
+  | "microwave"
+  | "blender"
+  | "pressure-cooker"
+  | "griddle";
+
 export interface Dish {
   id: string;
   name: string;
@@ -28,6 +56,12 @@ export interface Dish {
   fat: number; // g
   tags: DishTag[];
   ingredients: Ingredient[];
+  cuisine?: Cuisine;
+  cookingType?: CookingType;
+  equipment?: Equipment[];
+  prepMinutes?: number;
+  spiceLevel?: 0 | 1 | 2 | 3;
+  recipeUrl?: string;
 }
 
 export type DishTag =
@@ -56,6 +90,59 @@ export const CATEGORY_EMOJI: Record<IngredientCategory, string> = {
 const g = (name: string, qty: number, category: IngredientCategory): Ingredient => ({ name, qty, unit: "g", category });
 const ml = (name: string, qty: number, category: IngredientCategory): Ingredient => ({ name, qty, unit: "ml", category });
 const pc = (name: string, qty: number, category: IngredientCategory): Ingredient => ({ name, qty, unit: "pc", category });
+
+export function youtubeSearchUrl(name: string): string {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(name + " recipe")}`;
+}
+
+// Manual overrides for dishes that need specific metadata; others get sensible defaults.
+const META_OVERRIDES: Record<string, Partial<Pick<Dish, "cuisine" | "cookingType" | "equipment" | "prepMinutes" | "spiceLevel">>> = {
+  b3: { cuisine: "south-indian", cookingType: "steamed", equipment: ["stove", "pressure-cooker"], prepMinutes: 30 },
+  b4: { cuisine: "south-indian", cookingType: "stovetop", equipment: ["griddle"], prepMinutes: 25 },
+  b5: { cuisine: "south-indian", cookingType: "stovetop", equipment: ["griddle"], prepMinutes: 20 },
+  b8: { cuisine: "gujarati", cookingType: "stovetop", equipment: ["griddle"], prepMinutes: 25, spiceLevel: 1 },
+  b14: { cuisine: "south-indian", cookingType: "fried", equipment: ["stove"], prepMinutes: 45, spiceLevel: 2 },
+  b15: { cuisine: "south-indian", cookingType: "stovetop", equipment: ["blender", "griddle"], prepMinutes: 25 },
+  b16: { cuisine: "south-indian", cookingType: "steamed", equipment: ["stove"], prepMinutes: 30 },
+  b17: { cuisine: "north-indian", cookingType: "fried", equipment: ["stove"], prepMinutes: 30, spiceLevel: 2 },
+  b19: { cuisine: "continental", cookingType: "no-cook", equipment: [], prepMinutes: 5 },
+  b22: { cuisine: "north-indian", cookingType: "fried", equipment: ["stove"], prepMinutes: 40, spiceLevel: 2 },
+  b23: { cuisine: "punjabi", cookingType: "fried", equipment: ["stove"], prepMinutes: 60, spiceLevel: 2 },
+  l2: { cuisine: "punjabi", cookingType: "instant-pot", equipment: ["pressure-cooker"], prepMinutes: 45, spiceLevel: 2 },
+  l3: { cuisine: "punjabi", cookingType: "instant-pot", equipment: ["pressure-cooker"], prepMinutes: 40, spiceLevel: 2 },
+  l4: { cuisine: "punjabi", cookingType: "stovetop", equipment: ["stove", "blender"], prepMinutes: 30, spiceLevel: 2 },
+  l5: { cuisine: "punjabi", cookingType: "stovetop", equipment: ["stove", "blender"], prepMinutes: 30, spiceLevel: 1 },
+  l9: { cuisine: "north-indian", cookingType: "stovetop", equipment: ["pressure-cooker"], prepMinutes: 60, spiceLevel: 2 },
+  l16: { cuisine: "south-indian", cookingType: "stovetop", equipment: ["pressure-cooker"], prepMinutes: 35 },
+  l17: { cuisine: "south-indian", cookingType: "no-cook", equipment: [], prepMinutes: 10 },
+  l18: { cuisine: "maharashtrian", cookingType: "stovetop", equipment: ["griddle"], prepMinutes: 30, spiceLevel: 2 },
+  l24: { cuisine: "punjabi", cookingType: "stovetop", equipment: ["stove", "blender"], prepMinutes: 60, spiceLevel: 1 },
+  l25: { cuisine: "punjabi", cookingType: "instant-pot", equipment: ["pressure-cooker"], prepMinutes: 90, spiceLevel: 1 },
+  d1: { cuisine: "north-indian", cookingType: "instant-pot", equipment: ["pressure-cooker"], prepMinutes: 20 },
+  d3: { cuisine: "indo-chinese", cookingType: "stovetop", equipment: ["stove"], prepMinutes: 20, spiceLevel: 1 },
+  d4: { cuisine: "continental", cookingType: "stovetop", equipment: ["stove"], prepMinutes: 20, spiceLevel: 0 },
+  d5: { cuisine: "north-indian", cookingType: "instant-pot", equipment: ["pressure-cooker"], prepMinutes: 25 },
+  d6: { cuisine: "continental", cookingType: "stovetop", equipment: ["griddle"], prepMinutes: 15, spiceLevel: 1 },
+  d7: { cuisine: "continental", cookingType: "baked", equipment: ["oven", "airfryer"], prepMinutes: 25, spiceLevel: 1 },
+  d8: { cuisine: "continental", cookingType: "stovetop", equipment: ["stove"], prepMinutes: 20, spiceLevel: 1 },
+  d9: { cuisine: "indo-chinese", cookingType: "fried", equipment: ["stove"], prepMinutes: 40, spiceLevel: 2 },
+  d10: { cuisine: "punjabi", cookingType: "stovetop", equipment: ["stove"], prepMinutes: 20, spiceLevel: 2 },
+};
+
+function enrich(
+  id: string,
+  name: string,
+  tags: DishTag[],
+): Pick<Dish, "cuisine" | "cookingType" | "equipment" | "prepMinutes" | "spiceLevel" | "recipeUrl"> {
+  const base: Pick<Dish, "cuisine" | "cookingType" | "equipment" | "prepMinutes" | "spiceLevel"> = {
+    cuisine: "north-indian",
+    cookingType: tags.includes("fried-breakfast") ? "fried" : "stovetop",
+    equipment: ["stove"],
+    prepMinutes: 25,
+    spiceLevel: 1,
+  };
+  return { ...base, ...META_OVERRIDES[id], recipeUrl: youtubeSearchUrl(name) };
+}
 
 type Raw = [string, string, string, Slot[], number, number, number, number, DishTag[], Ingredient[]];
 
@@ -148,6 +235,7 @@ export const DISHES: Dish[] = raws.map((r) => ({
   fat: r[7],
   tags: r[8],
   ingredients: r[9],
+  ...enrich(r[0], r[1], r[8]),
 }));
 
 export const DISHES_BY_ID: Record<string, Dish> = Object.fromEntries(DISHES.map((d) => [d.id, d]));
@@ -155,3 +243,5 @@ export const DISHES_BY_ID: Record<string, Dish> = Object.fromEntries(DISHES.map(
 export function dishesForSlot(slot: Slot): Dish[] {
   return DISHES.filter((d) => d.slots.includes(slot));
 }
+
+

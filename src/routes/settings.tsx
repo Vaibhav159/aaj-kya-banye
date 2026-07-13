@@ -65,6 +65,15 @@ function SettingsPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader><CardTitle>Reminder timing</CardTitle></CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-3">
+          <Field label="Breakfast"><Input type="time" value={form.breakfastTime} onChange={(e) => update("breakfastTime", e.target.value)} /></Field>
+          <Field label="Lunch"><Input type="time" value={form.lunchTime} onChange={(e) => update("lunchTime", e.target.value)} /></Field>
+          <Field label="Dinner"><Input type="time" value={form.dinnerTime} onChange={(e) => update("dinnerTime", e.target.value)} /></Field>
+        </CardContent>
+      </Card>
+
       <div className="flex flex-wrap gap-2">
         <Button onClick={() => { save(form); toast.success("Settings saved"); }}>Save</Button>
         <Button variant="outline" onClick={() => { reset(); toast.success("Cycle restarted at day 1"); }}>Restart 42-day cycle</Button>
@@ -83,7 +92,11 @@ function SettingsPage() {
               onClick={() => {
                 const plan = applyOverrides(overrides);
                 const idx = currentDayIndex(start);
-                downloadIcs("thali-month.ics", buildIcs(plan, idx, 30));
+                downloadIcs("thali-month.ics", buildIcs(plan, idx, 30, new Date(), {
+                  breakfast: form.breakfastTime,
+                  lunch: form.lunchTime,
+                  dinner: form.dinnerTime,
+                }));
                 toast.success("Downloaded thali-month.ics");
               }}
             >
@@ -94,7 +107,7 @@ function SettingsPage() {
             <div>
               <div className="font-medium">Telegram reminders</div>
               <p className="text-sm text-muted-foreground">
-                Get a bot ping at meal times. Requires connecting Telegram (bot token via BotFather).
+                Ping at {form.breakfastTime} / {form.lunchTime} / {form.dinnerTime}. Requires connecting Telegram — ask to enable it and we'll wire the bot.
               </p>
             </div>
             <Button variant="outline" disabled title="Coming soon — needs Telegram bot connection">Connect Telegram</Button>

@@ -10,6 +10,8 @@ import { checkDay, isSwapAllowed, RULES } from "@/lib/rules";
 import { DishDetailDialog } from "@/components/dish-detail";
 import { shareOrCopy, todaySummary } from "@/lib/share";
 import { toast } from "sonner";
+import { useCustomRules } from "@/lib/custom-rules";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -35,6 +37,7 @@ function Dashboard() {
   const { start } = useCycleStart();
   const { overrides, setOne } = useOverrides();
   const { log, setEntry } = useMealLog();
+  const { rules: customRules } = useCustomRules();
   const dayIdx = currentDayIndex(start);
   const plan = useMemo(() => applyOverrides(overrides), [overrides]);
   const today = plan[dayIdx];
@@ -100,6 +103,8 @@ function Dashboard() {
         <RulesCard checks={ruleChecks} />
       </div>
 
+      <RecentStrip log={log} start={start} plan={plan} todayIdx={dayIdx} />
+
       <Dialog open={swapSlot !== null} onOpenChange={(o) => !o && setSwapSlot(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -110,6 +115,7 @@ function Dashboard() {
               slot={swapSlot}
               dayIdx={dayIdx}
               plan={plan}
+              customRules={customRules}
               onPick={(id) => {
                 setOne(dayIdx, swapSlot, id);
                 setSwapSlot(null);
@@ -290,22 +296,24 @@ function SwapList({
   slot,
   dayIdx,
   plan,
+  customRules,
   onPick,
 }: {
   slot: Slot;
   dayIdx: number;
   plan: ReturnType<typeof applyOverrides>;
+  customRules: ReturnType<typeof useCustomRules>["rules"];
   onPick: (id: string) => void;
 }) {
   const current = DISHES_BY_ID[plan[dayIdx][slot]];
   const candidates = dishesForSlot(slot)
     .filter((d) => d.id !== current.id)
     .filter((d) => Math.abs(d.kcal - current.kcal) <= 150)
-    .filter((d) => isSwapAllowed(d, slot, dayIdx, plan))
+    .filter((d) => isSwapAllowed(d, slot, dayIdx, plan, customRules))
     .slice(0, 4);
 
   if (candidates.length === 0) {
-    return <p className="text-sm text-muted-foreground">No swap candidates match your rules right now. Try again after adjusting your plan.</p>;
+    return <p className="text-sm text-muted-foreground">No swap candidates match your rules right now. Loosen a rule on the Rules page and try again.</p>;
   }
 
   return (
@@ -317,8 +325,8 @@ function SwapList({
           className="group flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-left transition hover:border-primary hover:bg-secondary/40"
         >
           <span className="text-3xl">{d.emoji}</span>
-          <div className="flex-1">
-            <div className="font-medium">{d.name}</div>
+          <div className="flex-1 min-w-0">
+            <div className="truncate font-medium">{d.name}</div>
             <div className="text-xs text-muted-foreground">
               {d.kcal} kcal · P {d.protein} · C {d.carbs} · F {d.fat}
             </div>
@@ -326,5 +334,52 @@ function SwapList({
         </button>
       ))}
     </div>
+  );
+}
+
+function RecentStrip({
+  log,
+  start,
+  plan,
+  todayIdx,
+}: {
+  log: ReturnType<typeof useMealLog>["log"];
+  start: number;
+  plan: ReturnType<typeof applyOverrides>;
+  todayIdx: number;
+}) {
+  const slots: Slot[] = ["breakfast", "lunch", "dinner"];
+  const days = Array.from({ length: 7 }, (_, i) => (((todayIdx - (6 - i)) % 42) + 42) % 42);
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="font-display text-2xl">Last 7 days</CardTitle>
+        <Link to="/history" className="text-sm text-primary hover:underline">See history →</Link>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-7 gap-1.5">
+          {days.map((d) => (
+            <div key={d} className={"space-y-0.5 text-center " + (d === todayIdx ? "font-semibold text-primary" : "")}>
+              <div className="text-[10px] text-muted-foreground">D{d + 1}</div>
+              <div className="flex flex-col gap-0.5">
+                {slots.map((s) => {
+                  const st = log[logKey(start, d, s)]?.status;
+                  return (
+                    <div
+                      key={s}
+                      title={`${DISHES_BY_ID[plan[d][s]]?.name} · ${st ?? "not logged"}`}
+                      className={
+                        "h-3 rounded-sm " +
+                        (st === "eaten" ? "bg-success" : st === "skipped" ? "bg-muted" : "bg-border/60")
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

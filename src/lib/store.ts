@@ -10,6 +10,9 @@ export interface Profile {
   goalProtein: number;
   goalCarbs: number;
   goalFat: number;
+  breakfastTime: string; // "HH:MM"
+  lunchTime: string;
+  dinnerTime: string;
 }
 
 export const DEFAULT_PROFILE: Profile = {
@@ -20,6 +23,9 @@ export const DEFAULT_PROFILE: Profile = {
   goalProtein: 80,
   goalCarbs: 250,
   goalFat: 65,
+  breakfastTime: "08:00",
+  lunchTime: "13:00",
+  dinnerTime: "20:00",
 };
 
 const PROFILE_KEY = "thali:profile";

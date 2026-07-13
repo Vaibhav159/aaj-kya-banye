@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SnacksRouteImport } from './routes/snacks'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as RulesRouteImport } from './routes/rules'
 import { Route as PlannerRouteImport } from './routes/planner'
+import { Route as HistoryRouteImport } from './routes/history'
 import { Route as GroceryRouteImport } from './routes/grocery'
+import { Route as DecideRouteImport } from './routes/decide'
 import { Route as DatabaseRouteImport } from './routes/database'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -32,14 +35,29 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RulesRoute = RulesRouteImport.update({
+  id: '/rules',
+  path: '/rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlannerRoute = PlannerRouteImport.update({
   id: '/planner',
   path: '/planner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GroceryRoute = GroceryRouteImport.update({
   id: '/grocery',
   path: '/grocery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DecideRoute = DecideRouteImport.update({
+  id: '/decide',
+  path: '/decide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DatabaseRoute = DatabaseRouteImport.update({
@@ -56,8 +74,11 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/database': typeof DatabaseRoute
+  '/decide': typeof DecideRoute
   '/grocery': typeof GroceryRoute
+  '/history': typeof HistoryRoute
   '/planner': typeof PlannerRoute
+  '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/snacks': typeof SnacksRoute
@@ -65,8 +86,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/database': typeof DatabaseRoute
+  '/decide': typeof DecideRoute
   '/grocery': typeof GroceryRoute
+  '/history': typeof HistoryRoute
   '/planner': typeof PlannerRoute
+  '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/snacks': typeof SnacksRoute
@@ -75,8 +99,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/database': typeof DatabaseRoute
+  '/decide': typeof DecideRoute
   '/grocery': typeof GroceryRoute
+  '/history': typeof HistoryRoute
   '/planner': typeof PlannerRoute
+  '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/snacks': typeof SnacksRoute
@@ -86,8 +113,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/database'
+    | '/decide'
     | '/grocery'
+    | '/history'
     | '/planner'
+    | '/rules'
     | '/settings'
     | '/sitemap.xml'
     | '/snacks'
@@ -95,8 +125,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/database'
+    | '/decide'
     | '/grocery'
+    | '/history'
     | '/planner'
+    | '/rules'
     | '/settings'
     | '/sitemap.xml'
     | '/snacks'
@@ -104,8 +137,11 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/database'
+    | '/decide'
     | '/grocery'
+    | '/history'
     | '/planner'
+    | '/rules'
     | '/settings'
     | '/sitemap.xml'
     | '/snacks'
@@ -114,8 +150,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DatabaseRoute: typeof DatabaseRoute
+  DecideRoute: typeof DecideRoute
   GroceryRoute: typeof GroceryRoute
+  HistoryRoute: typeof HistoryRoute
   PlannerRoute: typeof PlannerRoute
+  RulesRoute: typeof RulesRoute
   SettingsRoute: typeof SettingsRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SnacksRoute: typeof SnacksRoute
@@ -144,6 +183,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/rules': {
+      id: '/rules'
+      path: '/rules'
+      fullPath: '/rules'
+      preLoaderRoute: typeof RulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/planner': {
       id: '/planner'
       path: '/planner'
@@ -151,11 +197,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlannerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/grocery': {
       id: '/grocery'
       path: '/grocery'
       fullPath: '/grocery'
       preLoaderRoute: typeof GroceryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/decide': {
+      id: '/decide'
+      path: '/decide'
+      fullPath: '/decide'
+      preLoaderRoute: typeof DecideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/database': {
@@ -178,8 +238,11 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DatabaseRoute: DatabaseRoute,
+  DecideRoute: DecideRoute,
   GroceryRoute: GroceryRoute,
+  HistoryRoute: HistoryRoute,
   PlannerRoute: PlannerRoute,
+  RulesRoute: RulesRoute,
   SettingsRoute: SettingsRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   SnacksRoute: SnacksRoute,

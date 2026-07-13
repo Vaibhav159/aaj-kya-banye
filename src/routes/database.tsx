@@ -145,14 +145,27 @@ function AddDishForm({ onAdd }: { onAdd: (d: Omit<Dish, "id">) => void }) {
   const [carbs, setCarbs] = useState(50);
   const [fat, setFat] = useState(15);
   const [slots, setSlots] = useState<Slot[]>(["lunch"]);
+  const [recipeUrl, setRecipeUrl] = useState("");
 
   const toggle = (s: Slot) =>
     setSlots((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
   const submit = () => {
     if (!name.trim()) return;
-    onAdd({ name: name.trim(), emoji, kcal, protein, carbs, fat, slots, tags: [], ingredients: [] });
+    onAdd({
+      name: name.trim(),
+      emoji,
+      kcal,
+      protein,
+      carbs,
+      fat,
+      slots,
+      tags: [],
+      ingredients: [],
+      recipeUrl: recipeUrl.trim() || undefined,
+    });
     setName("");
+    setRecipeUrl("");
   };
 
   return (
@@ -201,6 +214,10 @@ function AddDishForm({ onAdd }: { onAdd: (d: Omit<Dish, "id">) => void }) {
               {s}
             </button>
           ))}
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs uppercase tracking-wide text-muted-foreground">Recipe URL (optional)</Label>
+          <Input value={recipeUrl} onChange={(e) => setRecipeUrl(e.target.value)} placeholder="https://youtube.com/…" />
         </div>
         <Button onClick={submit} disabled={!name.trim() || slots.length === 0}>Add to my dishes</Button>
       </CardContent>

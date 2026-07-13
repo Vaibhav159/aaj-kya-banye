@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CATEGORY_EMOJI, type Dish } from "@/lib/dishes";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export function DishDetailDialog({
   dish,
@@ -13,7 +14,7 @@ export function DishDetailDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         {dish && (
           <>
             <DialogHeader>
@@ -29,13 +30,30 @@ export function DishDetailDialog({
                 {dish.tags.map((t) => (
                   <Badge key={t} variant="outline" className="capitalize">{t}</Badge>
                 ))}
+                {dish.cuisine && <Badge variant="outline">{dish.cuisine.replace("-", " ")}</Badge>}
+                {dish.cookingType && <Badge variant="outline">{dish.cookingType.replace("-", " ")}</Badge>}
+                {dish.prepMinutes ? <Badge variant="outline">⏱ {dish.prepMinutes} min</Badge> : null}
+                {typeof dish.spiceLevel === "number" && dish.spiceLevel > 0 && (
+                  <Badge variant="outline">{"🌶".repeat(dish.spiceLevel)}</Badge>
+                )}
               </div>
+              {dish.equipment && dish.equipment.length > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-semibold uppercase tracking-wide">Needs:</span>{" "}
+                  {dish.equipment.join(" · ")}
+                </div>
+              )}
               <div className="grid grid-cols-4 gap-2 text-center">
                 <Stat label="kcal" value={dish.kcal} />
                 <Stat label="Protein" value={`${dish.protein}g`} />
                 <Stat label="Carbs" value={`${dish.carbs}g`} />
                 <Stat label="Fat" value={`${dish.fat}g`} />
               </div>
+              {dish.recipeUrl && (
+                <a href={dish.recipeUrl} target="_blank" rel="noopener noreferrer" className="block">
+                  <Button className="w-full" variant="outline">▶ Watch recipe</Button>
+                </a>
+              )}
               {dish.ingredients.length > 0 && (
                 <div>
                   <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ingredients</div>
