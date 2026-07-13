@@ -28,7 +28,7 @@ export function buildIcs(plan: DayPlan[], startIdx: number, days: number, startD
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Thali//Meal Planner//EN",
+    "PRODID:-//Aaj Kya Banaye//Meal Planner//EN",
     "CALSCALE:GREGORIAN",
   ];
   const dtstamp = fmt(new Date());

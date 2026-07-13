@@ -31,7 +31,7 @@ export function aggregateGrocery(plan: DayPlan[]): Record<IngredientCategory, Ag
 }
 
 export function toCopyText(grouped: Record<IngredientCategory, AggregatedIngredient[]>): string {
-  const lines: string[] = ["Thali grocery list", ""];
+  const lines: string[] = ["Aaj Kya Banaye? grocery list", ""];
   for (const cat of CATS) {
     const items = grouped[cat];
     if (!items.length) continue;

@@ -1,575 +1,274 @@
 # AGENTS.md
 
-# 🍽️ Aaj Kya Banaye? Engineering & Product Constitution
+# 🍛 Thali — Engineering & Product Constitution
 
 > **Mission**
 >
-> Build the best meal planning experience on the web.
->
-> Every change should make the application faster, simpler, more delightful, and more useful. The experience should feel like a premium native application rather than a traditional recipe website.
+> A 42-day rotating Indian vegetarian meal planner.
+> Every change should make the app faster, simpler, and more useful.
+> It should feel like a premium native app, not a recipe website.
 
 ---
 
 # 🎯 Product Vision
 
-Aaj Kya Banaye? is **not** just a recipe website.
+Thali helps users:
 
-It is a modern meal planning platform focused on reducing the daily stress of deciding what to cook.
+- See today's meals at a glance with macro breakdown
+- Browse and swap dishes across a 42-day rotating plan
+- Track meals as eaten/skipped and maintain streaks
+- Get snack suggestions based on cravings
+- Generate aggregated grocery lists
+- Define custom nutrition rules (avoid fried food, prefer quick meals, etc.)
+- Export meal plans to calendar (iCal download + live Cloudflare feed)
+- Share meal plans via Web Share API or clipboard
 
-The application should help users:
-
-- Discover meals effortlessly
-- Plan meals intelligently
-- Generate grocery lists automatically
-- Track nutrition
-- Minimize decision fatigue
-- Feel delighted every time they open the app
-
-Every feature should contribute toward these goals.
+All data is stored locally in localStorage. No account required.
 
 ---
 
 # ⭐ Core Principles
 
 ## 1. UX First
-
-Every engineering decision should prioritize the user experience.
-
-Always ask:
-
-- Does this reduce effort?
-- Does this reduce cognitive load?
-- Does this make the interface feel faster?
-- Does this improve discoverability?
-- Would a first-time user immediately understand it?
-
-If not, reconsider the implementation.
-
----
+Prioritize reducing cognitive load. A first-time user should understand any screen immediately.
 
 ## 2. Less Is More
-
-Avoid clutter.
-
-Remove unnecessary buttons, text, settings, and dialogs.
-
-Prefer intelligent defaults over user configuration.
-
----
+Prefer intelligent defaults over configuration. Remove before adding.
 
 ## 3. Fast Feels Premium
-
-Performance is part of the product.
-
-Users should never wait for:
-
-- navigation
-- filtering
-- searching
-- animations
-- meal recommendations
-
-Prefer instant feedback over loading indicators whenever possible.
-
----
+All navigation, filtering, and interactions must feel instant. No spinners for local data.
 
 ## 4. Beautiful by Default
-
-The interface should feel polished without unnecessary decoration.
-
-Inspired by products like:
-
-- Apple Health
-- Arc Browser
-- Airbnb
-- Notion
-- Spotify
-- Google Material 3
-- Linear
-
-The UI should communicate:
-
-- clarity
-- warmth
-- confidence
-- elegance
-
----
+Inspired by Apple Health, Notion, Linear. The UI should feel warm, clear, and confident.
 
 ## 5. Accessibility Is Mandatory
-
-Every feature must support:
-
-- keyboard navigation
-- visible focus states
-- semantic HTML
-- screen readers
-- reduced motion preferences
-- proper color contrast
-
-Accessibility is never optional.
+Keyboard navigation, focus states, semantic HTML, screen reader support, `prefers-reduced-motion`, proper contrast.
 
 ---
 
 # 🏗 Tech Stack
 
-Unless explicitly instructed otherwise, use the following technologies.
-
-## Framework
-
-- Next.js (App Router)
+## Framework & Routing
+- **TanStack Start** (SPA mode) with **TanStack Router** (file-based routing in `src/routes/`)
+- **Vite 8** as build tool via `@lovable.dev/vite-tanstack-config`
 
 ## Language
+- **TypeScript** — strict mode enabled, avoid `any`
 
-- TypeScript
-
-Strict mode should remain enabled.
-
-Avoid using `any`.
-
-Prefer explicit typing.
-
----
+## Package Manager
+- **Bun**
 
 ## Styling
-
-- Tailwind CSS v4
-
-Guidelines:
-
-- Use utility classes first.
-- Avoid inline styles.
-- Prefer reusable components.
-- Use design tokens instead of hardcoded values.
-
----
+- **Tailwind CSS v4** (`@tailwindcss/vite`)
+- **tw-animate-css** for animation utilities
+- CSS custom properties with oklch color format
+- Design tokens in `src/styles.css`
 
 ## Components
-
-Use **shadcn/ui** as the primary component library.
-
-Do not reinvent common UI components unless customization provides clear user value.
-
-Examples:
-
-- Dialog
-- Sheet
-- Drawer
-- Card
-- Popover
-- Tooltip
-- Toast
-- Dropdown
-- Tabs
-- Calendar
-- Command Palette
-
----
+- **shadcn/ui** (New York style, 46 components in `src/components/ui/`)
+- **Radix UI** primitives (via shadcn)
+- **Sonner** for toast notifications
+- **Recharts** for data visualization
+- **Vaul** for drawer component
+- **cmdk** for command palette
 
 ## Icons
+- **Lucide React** — do not mix icon libraries
 
-Use **Lucide React**.
-
-Avoid mixing multiple icon libraries.
-
----
-
-## Animations
-
-Use **Framer Motion**.
-
-Animations should communicate:
-
-- hierarchy
-- continuity
-- interaction
-- feedback
-
-Avoid decorative animations.
-
-Keep transitions smooth and subtle.
-
----
-
-## State Management
-
-Use:
-
-- Zustand
-
-Use local component state whenever possible.
-
-Only introduce global state when necessary.
-
----
+## Fonts
+- **Inter** (body) + **Fraunces** (display headings)
 
 ## Server State
+- **TanStack Query** — used for QueryClient context and calendar sync
 
-Use:
-
-- TanStack Query
-
-Benefits:
-
-- caching
-- optimistic updates
-- retries
-- background synchronization
-
----
+## State Management
+- **Custom React hooks + localStorage** (no Zustand)
+- All state hooks live in `src/lib/store.ts`
+- Pattern: `useState` + `useEffect` hydration from localStorage + `useCallback` persist
 
 ## Forms
+- **React Hook Form** + **Zod** (installed, use for complex forms)
 
-Use:
+## Calendar Integration
+- Client-side iCal generation (`src/lib/ical.ts`)
+- Cloudflare Workers API for live calendar feeds (`src/lib/calendar-server.ts`)
 
-- React Hook Form
-- Zod validation
-
-Never manually validate complex forms.
-
----
-
-## Search
-
-For fuzzy searching, use:
-
-- Fuse.js
-
----
-
-## Future Backend
-
-Preferred backend:
-
-- Supabase
-
-Future features may include:
-
-- Authentication
-- Cloud Sync
-- Saved Meal Plans
-- Shared Lists
-- AI Recommendations
-
-Design the codebase so backend integration can be added without major refactoring.
+## Deployment
+- **GitHub Pages** (SPA mode, 404.html fallback)
+- GitHub Actions for CI/CD
 
 ---
 
 # 📁 Project Structure
 
-Follow this structure whenever possible.
-
 ```text
 src/
-│
-├── app/
 ├── components/
-│   ├── ui/
-│   ├── meal/
-│   ├── grocery/
-│   ├── planner/
-│   ├── nutrition/
-│   └── layout/
-│
-├── features/
+│   ├── ui/              # shadcn/ui components (do not edit manually)
+│   ├── bottom-nav.tsx   # Mobile bottom navigation
+│   └── dish-detail.tsx  # Dish detail sheet/modal
 │
 ├── hooks/
+│   └── use-mobile.tsx   # Mobile viewport detection
 │
-├── lib/
+├── lib/                 # ALL business logic
+│   ├── store.ts         # State hooks: profile, cycle, overrides, meal log, custom dishes
+│   ├── dishes.ts        # Dish database (64 dishes), types, helpers
+│   ├── plan.ts          # 42-day plan generation algorithm
+│   ├── rules.ts         # 8 built-in nutrition rules + rule checker
+│   ├── custom-rules.ts  # User-configurable rules engine
+│   ├── grocery.ts       # Ingredient aggregation by category
+│   ├── snacks.ts        # 18 snacks with craving-based filtering
+│   ├── ical.ts          # iCal (.ics) generation
+│   ├── share.ts         # Web Share API / clipboard fallback
+│   ├── calendar-server.ts  # Cloudflare calendar feed sync
+│   └── utils.ts         # cn() utility
 │
-├── store/
+├── routes/              # TanStack Router file-based routes
+│   ├── __root.tsx       # Root layout: header, footer, bottom nav, providers
+│   ├── index.tsx        # Today view (hero)
+│   ├── planner.tsx      # 42-day calendar view
+│   ├── decide.tsx       # Meal decision helper
+│   ├── history.tsx      # Meal log history
+│   ├── snacks.tsx       # Snack finder by craving
+│   ├── grocery.tsx      # Aggregated grocery list
+│   ├── database.tsx     # Full dish database browser
+│   ├── rules.tsx        # Custom rules editor
+│   ├── settings.tsx     # Profile & preferences
+│   └── api.calendar.ts  # Calendar feed API endpoint
 │
-├── services/
-│
-├── data/
-│
-├── types/
-│
-├── utils/
-│
-└── styles/
+├── router.tsx           # Router factory
+├── server.ts            # SSR error wrapper
+├── start.ts             # Entry point
+└── styles.css           # Design system (oklch tokens, theme)
 ```
+
+### Key conventions
+- Business logic goes in `src/lib/`, not scattered across components
+- Route files are self-contained pages (no separate page components)
+- Feature-specific components live alongside routes, not in subdirectories
+- No `features/`, `store/`, `services/`, `data/`, `types/`, or `utils/` directories
 
 ---
 
 # 🎨 Design System
 
 ## Colors
-
-Never hardcode colors.
-
-Use design tokens.
-
-Maintain support for:
-
-- Light Mode
-- Dark Mode
-- AMOLED Mode
-
----
+- oklch color format throughout
+- CSS custom properties defined in `src/styles.css`
+- Light mode (`:root`) and Dark mode (`.dark`)
+- Never hardcode colors — use semantic tokens (`primary`, `muted`, `destructive`, etc.)
 
 ## Typography
-
-Typography should establish hierarchy.
-
-Prefer:
-
-- larger spacing
-- comfortable reading widths
-- clear section headings
-- concise content
-
-Avoid large blocks of text.
-
----
+- Body: `Inter` via `--font-sans`
+- Headings: `Fraunces` via `--font-display`
+- Heading elements (`h1-h3`) automatically use display font
 
 ## Spacing
-
-Use an 8px spacing system.
-
-Consistent spacing creates visual rhythm.
-
----
+- 8px base spacing system via Tailwind
 
 ## Border Radius
-
-Maintain consistent radius across components.
-
-Do not mix multiple corner styles.
+- Base `--radius: 0.75rem` with computed sm/md/lg/xl/2xl/3xl/4xl variants
 
 ---
 
-## Shadows
+# 🍲 Dish Database
 
-Use subtle elevation.
+The `Dish` interface (`src/lib/dishes.ts`):
 
-Avoid heavy shadows.
+```ts
+interface Dish {
+  id: string;           // "b1", "l2", "d3", etc.
+  name: string;
+  emoji: string;
+  slots: Slot[];        // "breakfast" | "lunch" | "dinner"
+  kcal: number;
+  protein: number;      // grams
+  carbs: number;        // grams
+  fat: number;          // grams
+  tags: DishTag[];      // "pizza" | "paratha" | "fried-breakfast" | "dal" | "legume" | "leafy" | "sweet" | "light"
+  ingredients: Ingredient[];
+  cuisine?: Cuisine;
+  cookingType?: CookingType;
+  equipment?: Equipment[];
+  prepMinutes?: number;
+  spiceLevel?: 0 | 1 | 2 | 3;
+  recipeUrl?: string;
+}
+```
+
+ID conventions: `b*` = breakfast, `l*` = lunch, `d*` = dinner, `s*` = snack.
+
+Nutrition values must be realistic estimates. Never use placeholders.
+
+## Ingredient Categories
+`veg` | `grain` | `dairy` | `legume` | `spice` | `oil` | `fruit` | `nut` | `other`
+
+Grocery aggregation merges duplicates, normalizes units (g/ml/pc), and groups by category.
 
 ---
 
-## Motion
+# 🔄 42-Day Plan
 
-Motion should communicate state.
+- Deterministic generation from dish pools in `plan.ts`
+- Users can override any slot (stored as overrides in localStorage)
+- Fried breakfasts only on Sundays (every 7th day)
+- Dinner always lighter than lunch by kcal
 
-Good examples:
+---
 
-- card hover
-- modal transitions
-- list reordering
-- page transitions
-- loading skeletons
+# 📏 Rules Engine
 
-Bad examples:
+### 8 Built-in Rules
+1. Pizza max 1×/week
+2. Paratha only at breakfast/lunch
+3. Fried breakfasts max 2×/week
+4. Dal or legume every day
+5. Leafy greens every day
+6. No repeat within 3 days
+7. Dinner lighter than lunch
+8. Sweets max 2×/week
 
-- random bouncing
-- excessive scaling
-- spinning icons without purpose
+### Custom Rules (`custom-rules.ts`)
+Users can create avoid/prefer/require rules scoped to any slot, matching on:
+cuisine, cookingType, equipment, tag, maxPrepMinutes, maxSpice
 
-Respect:
+---
 
-- `prefers-reduced-motion`
+# 🧠 State Management Pattern
+
+All state follows the same hook pattern in `store.ts`:
+
+```ts
+function useX() {
+  const [state, setState] = useState(defaultValue);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setState(readLS(KEY, default)); setHydrated(true); }, []);
+  const save = useCallback((next) => { setState(next); localStorage.setItem(KEY, ...); }, []);
+  return { state, save, hydrated };
+}
+```
+
+Always check `hydrated` before rendering state-dependent UI to avoid hydration flash.
+
+localStorage keys are prefixed with `thali:`.
 
 ---
 
 # 📱 Responsive Design
 
-Design mobile first.
-
-Support:
-
-- phones
-- tablets
-- laptops
-- desktops
-- ultrawide displays
-
-Avoid fixed widths.
-
-Prefer:
-
-- CSS Grid
-- Flexbox
-- clamp()
-- responsive typography
+- Mobile-first with bottom navigation (`BottomNav`)
+- Desktop gets horizontal header nav
+- Main content has `pb-20 md:pb-0` to account for bottom nav
+- Use Flexbox/Grid, avoid fixed widths
 
 ---
 
-# ⚡ Performance Standards
+# ⚡ Performance
 
-Performance is a feature.
-
-Every feature should consider:
-
-- rendering speed
-- bundle size
-- memory usage
-- interaction latency
-
-Prefer:
-
-- memoization when appropriate
-- lazy loading
-- dynamic imports
-- virtualization for long lists
-
-Avoid:
-
-- unnecessary re-renders
-- duplicate computations
-- excessive DOM nodes
-
----
-
-# 🌐 Offline First
-
-The application should remain useful without internet.
-
-When fetching external resources:
-
-- Use AbortController
-- Timeout after 6 seconds
-- Retry gracefully
-- Provide local fallback data
-
-Users should never encounter broken experiences because of network failures.
-
----
-
-# 🧠 UX Standards
-
-## Empty States
-
-Every empty state should:
-
-- explain what happened
-- suggest the next action
-- feel encouraging
-
-Never display blank screens.
-
----
-
-## Loading States
-
-Prefer:
-
-- skeletons
-- shimmer placeholders
-- optimistic rendering
-
-Avoid unnecessary spinners.
-
----
-
-## Error States
-
-Errors should:
-
-- explain the issue
-- explain how to recover
-- avoid technical jargon
-
-Never expose stack traces.
-
----
-
-## Feedback
-
-Every interaction should provide feedback.
-
-Examples:
-
-- hover
-- pressed
-- loading
-- success
-- validation
-- animation
-
-Users should never wonder whether an action succeeded.
-
----
-
-# 🍲 Meal Database Standards
-
-Every meal must include:
-
-- calories
-- protein
-- carbs
-- fats
-- meal slot
-- ingredients
-
-Example:
-
-```ts
-{
-    calories: number,
-    protein: number,
-    carbs: number,
-    fat: number,
-    mealSlots: MealSlot[],
-    ingredients: Ingredient[]
-}
-```
-
-Nutrition values should always be realistic estimates.
-
-Never leave placeholder values.
-
----
-
-# 🛒 Grocery Rules
-
-Ingredients should:
-
-- merge duplicates
-- normalize units
-- combine quantities
-- group by category
-
-Categories include:
-
-- Vegetables
-- Fruits
-- Dairy
-- Grains
-- Legumes
-- Pantry
-- Nuts
-- Herbs & Spices
-
----
-
-# 🔄 Meal Planning Rules
-
-Meal recommendations should prioritize:
-
-1. Variety
-2. Nutrition
-3. Simplicity
-4. Seasonal relevance
-5. User preferences
-
-Avoid repetitive meal suggestions.
-
-Users should feel the planner is intelligent.
-
----
-
-# 🧩 Component Standards
-
-Every reusable component should:
-
-- be typed
-- accept variants where appropriate
-- support dark mode
-- support keyboard navigation
-- expose meaningful props
-- avoid unnecessary complexity
-
-Prefer composition over inheritance.
+- All data is local (localStorage + static dish arrays) — no loading states needed for core data
+- Lazy load routes via TanStack Router
+- No unnecessary re-renders: `useCallback` for all state setters
 
 ---
 
@@ -577,107 +276,19 @@ Prefer composition over inheritance.
 
 Write code for future maintainers.
 
-Prefer:
-
-- descriptive names
-- small reusable functions
-- early returns
-- pure utilities
-- composition
-
-Avoid:
-
-- magic numbers
-- deeply nested logic
-- duplicated code
-- premature optimization
-
-Comments should explain **why**, not **what**.
-
----
-
-# 🧪 Testing Philosophy
-
-When implementing features, consider:
-
-- edge cases
-- empty data
-- slow networks
-- offline usage
-- invalid user input
-- accessibility
-- mobile devices
-
-Code should fail gracefully.
-
----
-
-# 🚀 Future Roadmap Considerations
-
-The architecture should be ready for:
-
-- AI meal recommendations
-- Nutrition analytics
-- Shopping integrations
-- Voice search
-- Barcode scanning
-- Meal history
-- User authentication
-- Recipe pages
-- PWA installation
-- Notifications
-- Offline sync
-
-Do not tightly couple code that would prevent future expansion.
-
----
-
-# 🤖 AI Agent Expectations
-
-Before submitting any implementation, verify:
-
-- Is this simpler?
-- Is this faster?
-- Is this easier to maintain?
-- Is this more accessible?
-- Does this improve the user experience?
-- Would this feel at home in a premium mobile application?
-
-If the answer is no, iterate further.
+- Descriptive names, small functions, early returns
+- Comments explain **why**, not **what**
+- No magic numbers, no deeply nested logic
+- Prefer composition over inheritance
 
 ---
 
 # ✅ Definition of Done
 
-A feature is complete only if:
-
-- It works correctly.
-- It is responsive.
-- It is accessible.
-- It supports dark mode.
-- It performs well.
-- It has loading states.
-- It has error handling.
-- It follows the design system.
-- It introduces no console errors.
-- It keeps the codebase cleaner than before.
-
----
-
-# 🌟 Golden Rule
-
-Every commit should leave the project noticeably better than it was before.
-
-Not just working.
-
-Cleaner.
-
-Faster.
-
-More intuitive.
-
-More maintainable.
-
-More delightful.
-
-Always optimize for the experience users feel, not just the code they never see.
+- Works correctly
+- Responsive (mobile + desktop)
+- Accessible (keyboard, focus, semantic HTML)
+- Supports dark mode
+- No console errors
+- Follows existing patterns in `src/lib/`
+- localStorage keys prefixed with `thali:`

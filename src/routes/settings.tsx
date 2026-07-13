@@ -13,10 +13,10 @@ import { saveCalendarFeed } from "@/lib/calendar-server";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Settings · Thali" },
+      { title: "Settings · Aaj Kya Banaye?" },
       { name: "description", content: "Set your name, weight, target and daily calorie / macro goals for your meal plan." },
-      { property: "og:title", content: "Settings · Thali" },
-      { property: "og:description", content: "Personalise your Thali meal-plan profile and goals." },
+      { property: "og:title", content: "Settings · Aaj Kya Banaye?" },
+      { property: "og:description", content: "Personalise your Aaj Kya Banaye? meal-plan profile and goals." },
     ],
   }),
   component: SettingsPage,

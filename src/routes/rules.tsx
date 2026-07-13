@@ -16,9 +16,9 @@ import {
 export const Route = createFileRoute("/rules")({
   head: () => ({
     meta: [
-      { title: "Custom Rules · Thali" },
+      { title: "Custom Rules · Aaj Kya Banaye?" },
       { name: "description", content: "Create your own dietary rules — filter dishes by cuisine, cooking style, equipment, prep time and more." },
-      { property: "og:title", content: "Custom Rules · Thali" },
+      { property: "og:title", content: "Custom Rules · Aaj Kya Banaye?" },
       { property: "og:description", content: "Personal dietary rules for your meal plan." },
     ],
   }),

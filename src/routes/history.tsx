@@ -15,9 +15,9 @@ import {
 export const Route = createFileRoute("/history")({
   head: () => ({
     meta: [
-      { title: "History · Thali" },
+      { title: "History · Aaj Kya Banaye?" },
       { name: "description", content: "See every meal you've logged with a 42-day adherence heatmap and top dishes." },
-      { property: "og:title", content: "History · Thali" },
+      { property: "og:title", content: "History · Aaj Kya Banaye?" },
       { property: "og:description", content: "Your meal-logging history and adherence." },
     ],
   }),
