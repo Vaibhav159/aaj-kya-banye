@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Cuisine, CookingType, Equipment, Dish, DishTag, Slot } from "./dishes";
+import { supabase } from "./supabase";
 
 export type RuleKind = "avoid" | "prefer" | "require";
 export type RuleScope = "any" | "breakfast" | "lunch" | "dinner";
@@ -42,28 +43,79 @@ function read(): CustomRule[] {
   }
 }
 
+async function syncCustomRule(rule: CustomRule, isDeleted: boolean = false) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    if (isDeleted) {
+      await supabase.from("custom_rules").delete().eq("user_id", user.id).eq("id", rule.id);
+    } else {
+      await supabase.from("custom_rules").upsert({
+        id: rule.id,
+        user_id: user.id,
+        label: rule.label,
+        kind: rule.kind,
+        scope: rule.scope,
+        match: rule.match,
+        enabled: rule.enabled,
+        updated_at: new Date().toISOString(),
+      });
+    }
+  } catch (err) {
+    console.error("Custom rule sync error:", err);
+  }
+}
+
 export function useCustomRules() {
   const [rules, setRules] = useState<CustomRule[]>(EXAMPLE_RULES);
   const [hydrated, setHydrated] = useState(false);
-  useEffect(() => {
+
+  const load = useCallback(() => {
     setRules(read());
     setHydrated(true);
   }, []);
+
+  useEffect(() => {
+    load();
+    if (typeof window !== "undefined") {
+      window.addEventListener("thali:sync", load);
+      return () => window.removeEventListener("thali:sync", load);
+    }
+  }, [load]);
+
   const persist = (next: CustomRule[]) => {
     setRules(next);
     if (typeof window !== "undefined") window.localStorage.setItem(KEY, JSON.stringify(next));
   };
+
   const add = useCallback((r: Omit<CustomRule, "id">) => {
     const id = `r-${Date.now().toString(36)}`;
-    persist([...read(), { ...r, id }]);
+    const rule = { ...r, id };
+    const next = [...read(), rule];
+    persist(next);
+    syncCustomRule(rule);
   }, []);
+
   const update = useCallback((id: string, patch: Partial<CustomRule>) => {
-    persist(read().map((r) => (r.id === id ? { ...r, ...patch } : r)));
+    const next = read().map((r) => (r.id === id ? { ...r, ...patch } : r));
+    persist(next);
+    const updated = next.find(r => r.id === id);
+    if (updated) syncCustomRule(updated);
   }, []);
-  const remove = useCallback((id: string) => persist(read().filter((r) => r.id !== id)), []);
+
+  const remove = useCallback((id: string) => {
+    const target = read().find(r => r.id === id);
+    if (target) syncCustomRule(target, true);
+    persist(read().filter((r) => r.id !== id));
+  }, []);
+
   const toggle = useCallback((id: string) => {
-    persist(read().map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r)));
+    const next = read().map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r));
+    persist(next);
+    const updated = next.find(r => r.id === id);
+    if (updated) syncCustomRule(updated);
   }, []);
+
   return { rules, hydrated, add, update, remove, toggle };
 }
 
