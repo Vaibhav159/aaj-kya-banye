@@ -292,3 +292,38 @@ Write code for future maintainers.
 - No console errors
 - Follows existing patterns in `src/lib/`
 - localStorage keys prefixed with `thali:`
+
+---
+
+# 🔄 Self-Maintenance (for AI agents)
+
+**This file and `ROADMAP.md` are the source of truth for all agents working on this codebase. Keep them accurate.**
+
+When you make changes to the codebase, update the relevant sections as part of the same task. Do not defer it.
+
+| When you… | Update |
+|---|---|
+| Add/remove a **route** in `src/routes/` | AGENTS.md → Project Structure (route list) |
+| Add/remove a **file in `src/lib/`** | AGENTS.md → Project Structure (lib list) |
+| Add/remove a **component** outside `src/components/ui/` | AGENTS.md → Project Structure (components list) |
+| Add/remove a **dependency** in `package.json` | AGENTS.md → Tech Stack (relevant subsection) |
+| Add/remove **dishes** in `dishes.ts` | AGENTS.md → Dish Database (dish count, ID conventions if new prefix) |
+| Add/remove **snacks** in `snacks.ts` | AGENTS.md → Dish Database or a snack section (snack count) |
+| Add/remove **built-in rules** in `rules.ts` | AGENTS.md → Rules Engine (numbered list) |
+| Add/remove **custom rule match fields** | AGENTS.md → Rules Engine → Custom Rules |
+| Add/remove **localStorage keys** | AGENTS.md → State Management Pattern (key prefix note) |
+| Change the **state hook pattern** in `store.ts` | AGENTS.md → State Management Pattern (code example) |
+| Add/remove **ingredient categories** | AGENTS.md → Dish Database → Ingredient Categories |
+| Change **design tokens or fonts** in `styles.css` | AGENTS.md → Design System |
+| Change **deployment target or CI** | AGENTS.md → Tech Stack → Deployment |
+| Add a new **shadcn/ui component** | AGENTS.md → Tech Stack → Components (component count) |
+| **Complete a roadmap item** | ROADMAP.md (change ⬜ → ✅, or 🔧 while in progress) |
+| **Discover a needed feature** during a task | ROADMAP.md (add as ⬜ under the appropriate priority) |
+
+### Rules for updates
+- Keep edits surgical — only change the lines that are affected
+- Don't rewrite sections that haven't changed
+- Counts (e.g. "64 dishes", "46 components") must match reality after your change
+- If you add a new major feature area not covered above, add a section for it
+- Roadmap items move ⬜ → 🔧 → ✅ — never skip 🔧 for multi-step work
+- New roadmap items go at the bottom of the appropriate priority section
