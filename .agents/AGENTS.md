@@ -130,7 +130,7 @@ src/
 │   ├── __root.tsx       # Root layout: header, footer, bottom nav, providers
 │   ├── index.tsx        # Today view (hero)
 │   ├── planner.tsx      # 42-day calendar view
-│   ├── decide.tsx       # Meal decision helper
+│   ├── kuch-bhi.tsx     # Meal decision helper
 │   ├── history.tsx      # Meal log history
 │   ├── snacks.tsx       # Snack finder by craving
 │   ├── grocery.tsx      # Aggregated grocery list

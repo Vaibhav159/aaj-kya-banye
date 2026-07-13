@@ -311,7 +311,7 @@ function SiteHeader({ onSearchClick }: { onSearchClick: () => void }) {
   const links: { to: string; label: string }[] = [
     { to: "/", label: "Today" },
     { to: "/planner", label: "Planner" },
-    { to: "/decide", label: "Decide" },
+    { to: "/kuch-bhi", label: "Kuch Bhi" },
     { to: "/history", label: "History" },
     { to: "/snacks", label: "Snacks" },
     { to: "/grocery", label: "Grocery" },

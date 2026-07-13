@@ -10,7 +10,7 @@ A 42-day rotating Indian vegetarian meal planner. See today's meals, swap dishes
 
 - **Today view** — breakfast, lunch, dinner with macro breakdown and nutrition rings
 - **42-day planner** — browse and swap any meal slot across the full cycle
-- **Decide mode** — let the app help when you can't pick what to cook
+- **Kuch Bhi mode** — let the app help when you can't pick what to cook
 - **Meal log** — track eaten/skipped meals, maintain streaks
 - **Snack finder** — 18 snacks filtered by craving (sweet, salty, crunchy, warm, refreshing, quick)
 - **Grocery list** — aggregated ingredients by category for any date range

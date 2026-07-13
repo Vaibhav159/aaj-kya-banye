@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 const items: { to: string; label: string; emoji: string }[] = [
   { to: "/", label: "Today", emoji: "🍽️" },
   { to: "/planner", label: "Plan", emoji: "📅" },
-  { to: "/decide", label: "Decide", emoji: "🎲" },
+  { to: "/kuch-bhi", label: "Kuch Bhi", emoji: "🎲" },
   { to: "/history", label: "History", emoji: "📊" },
   { to: "/database", label: "Dishes", emoji: "📖" },
 ];

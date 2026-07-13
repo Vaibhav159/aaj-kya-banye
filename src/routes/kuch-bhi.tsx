@@ -7,12 +7,12 @@ import { DISHES, dishesForSlot, type Dish, type Slot } from "@/lib/dishes";
 import { passesRules, useCustomRules } from "@/lib/custom-rules";
 import { applyOverrides, currentDayIndex, useCycleStart, useOverrides } from "@/lib/store";
 
-export const Route = createFileRoute("/decide")({
+export const Route = createFileRoute("/kuch-bhi")({
   head: () => ({
     meta: [
-      { title: "Decide · Aaj Kya Banaye?" },
+      { title: "Kuch Bhi · Aaj Kya Banaye?" },
       { name: "description", content: "Answer a few quick yes/no questions and let us pick tonight's dinner for you." },
-      { property: "og:title", content: "Decide for me · Aaj Kya Banaye?" },
+      { property: "og:title", content: "Kuch Bhi · Aaj Kya Banaye?" },
       { property: "og:description", content: "Tinder-style meal picker for when you can't decide." },
     ],
   }),
@@ -108,7 +108,7 @@ function DecidePage() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
       <header>
-        <p className="text-sm uppercase tracking-wide text-muted-foreground">Decide for me</p>
+        <p className="text-sm uppercase tracking-wide text-muted-foreground">Kuch Bhi</p>
         <h1 className="font-display text-3xl sm:text-4xl font-semibold">IDK what to eat 🎲</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Answer a few yes/no questions and we'll narrow it to 3. Currently planning: <span className="font-medium">{currentDishName}</span>.
