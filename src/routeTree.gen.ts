@@ -14,9 +14,9 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RulesRouteImport } from './routes/rules'
 import { Route as PlannerRouteImport } from './routes/planner'
+import { Route as KuchBhiRouteImport } from './routes/kuch-bhi'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as GroceryRouteImport } from './routes/grocery'
-import { Route as DecideRouteImport } from './routes/decide'
 import { Route as DatabaseRouteImport } from './routes/database'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiCalendarRouteImport } from './routes/api.calendar'
@@ -46,6 +46,11 @@ const PlannerRoute = PlannerRouteImport.update({
   path: '/planner',
   getParentRoute: () => rootRouteImport,
 } as any)
+const KuchBhiRoute = KuchBhiRouteImport.update({
+  id: '/kuch-bhi',
+  path: '/kuch-bhi',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoryRoute = HistoryRouteImport.update({
   id: '/history',
   path: '/history',
@@ -54,11 +59,6 @@ const HistoryRoute = HistoryRouteImport.update({
 const GroceryRoute = GroceryRouteImport.update({
   id: '/grocery',
   path: '/grocery',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DecideRoute = DecideRouteImport.update({
-  id: '/decide',
-  path: '/decide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DatabaseRoute = DatabaseRouteImport.update({
@@ -80,9 +80,9 @@ const ApiCalendarRoute = ApiCalendarRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/database': typeof DatabaseRoute
-  '/decide': typeof DecideRoute
   '/grocery': typeof GroceryRoute
   '/history': typeof HistoryRoute
+  '/kuch-bhi': typeof KuchBhiRoute
   '/planner': typeof PlannerRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
@@ -93,9 +93,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/database': typeof DatabaseRoute
-  '/decide': typeof DecideRoute
   '/grocery': typeof GroceryRoute
   '/history': typeof HistoryRoute
+  '/kuch-bhi': typeof KuchBhiRoute
   '/planner': typeof PlannerRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
@@ -107,9 +107,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/database': typeof DatabaseRoute
-  '/decide': typeof DecideRoute
   '/grocery': typeof GroceryRoute
   '/history': typeof HistoryRoute
+  '/kuch-bhi': typeof KuchBhiRoute
   '/planner': typeof PlannerRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
@@ -122,9 +122,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/database'
-    | '/decide'
     | '/grocery'
     | '/history'
+    | '/kuch-bhi'
     | '/planner'
     | '/rules'
     | '/settings'
@@ -135,9 +135,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/database'
-    | '/decide'
     | '/grocery'
     | '/history'
+    | '/kuch-bhi'
     | '/planner'
     | '/rules'
     | '/settings'
@@ -148,9 +148,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/database'
-    | '/decide'
     | '/grocery'
     | '/history'
+    | '/kuch-bhi'
     | '/planner'
     | '/rules'
     | '/settings'
@@ -162,9 +162,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DatabaseRoute: typeof DatabaseRoute
-  DecideRoute: typeof DecideRoute
   GroceryRoute: typeof GroceryRoute
   HistoryRoute: typeof HistoryRoute
+  KuchBhiRoute: typeof KuchBhiRoute
   PlannerRoute: typeof PlannerRoute
   RulesRoute: typeof RulesRoute
   SettingsRoute: typeof SettingsRoute
@@ -210,6 +210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlannerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/kuch-bhi': {
+      id: '/kuch-bhi'
+      path: '/kuch-bhi'
+      fullPath: '/kuch-bhi'
+      preLoaderRoute: typeof KuchBhiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/history': {
       id: '/history'
       path: '/history'
@@ -222,13 +229,6 @@ declare module '@tanstack/react-router' {
       path: '/grocery'
       fullPath: '/grocery'
       preLoaderRoute: typeof GroceryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/decide': {
-      id: '/decide'
-      path: '/decide'
-      fullPath: '/decide'
-      preLoaderRoute: typeof DecideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/database': {
@@ -258,9 +258,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DatabaseRoute: DatabaseRoute,
-  DecideRoute: DecideRoute,
   GroceryRoute: GroceryRoute,
   HistoryRoute: HistoryRoute,
+  KuchBhiRoute: KuchBhiRoute,
   PlannerRoute: PlannerRoute,
   RulesRoute: RulesRoute,
   SettingsRoute: SettingsRoute,
