@@ -8,7 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, useState, useMemo, type ReactNode } from "react";
-import { useProfile, useCycleStart, useOverrides, useCustomDishes } from "@/lib/store";
+import { useProfile, useCycleStart, useOverrides, useCustomDishes, applyOverrides, currentDayIndex } from "@/lib/store";
 import { saveCalendarFeed } from "@/lib/calendar-server";
 import { DISHES, type Dish } from "@/lib/dishes";
 import { SNACKS } from "@/lib/snacks";
@@ -22,10 +22,21 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
 
 function NotFoundComponent() {
@@ -195,6 +206,10 @@ function RootComponent() {
   const [selectedItem, setSelectedItem] = useState<Dish | null>(null);
 
   const { dishes: customDishes } = useCustomDishes();
+  const { setMany } = useOverrides();
+  const { profile } = useProfile();
+  const [sharedOverrides, setSharedOverrides] = useState<any>(null);
+  const [showImportDialog, setShowImportDialog] = useState(false);
 
   const allDishes = useMemo(() => {
     const map = new Map<string, Dish>();
@@ -223,6 +238,80 @@ function RootComponent() {
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
   }, []);
+
+  // Shared meal plan detection
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const importPlan = params.get("importPlan");
+    if (importPlan) {
+      try {
+        const base64 = importPlan.replace(/-/g, "+").replace(/_/g, "/");
+        const decoded = JSON.parse(atob(base64));
+        if (decoded && typeof decoded === "object") {
+          setSharedOverrides(decoded);
+          setShowImportDialog(true);
+        }
+      } catch (err) {
+        console.error("Failed to parse shared overrides:", err);
+        toast.error("Invalid or corrupt shared meal plan link");
+      }
+      
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, []);
+
+  // Meal time reminders check
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof Notification === "undefined") return;
+
+    const interval = setInterval(() => {
+      const enabled = localStorage.getItem("thali:remindersEnabled") === "true";
+      if (!enabled || Notification.permission !== "granted") return;
+
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, "0");
+      const minutes = String(now.getMinutes()).padStart(2, "0");
+      const timeStr = `${hours}:${minutes}`;
+
+      let matchedSlot: "breakfast" | "lunch" | "dinner" | null = null;
+      if (timeStr === profile.breakfastTime) matchedSlot = "breakfast";
+      else if (timeStr === profile.lunchTime) matchedSlot = "lunch";
+      else if (timeStr === profile.dinnerTime) matchedSlot = "dinner";
+
+      if (matchedSlot) {
+        const dateKey = now.toDateString();
+        const notifiedKey = `thali:notified-${dateKey}-${matchedSlot}`;
+        if (!localStorage.getItem(notifiedKey)) {
+          localStorage.setItem(notifiedKey, "true");
+          
+          const cycleStart = Number(localStorage.getItem("thali:cycleStart") || 0);
+          if (cycleStart) {
+            const dayIdx = currentDayIndex(cycleStart, now.getTime());
+            const localOverrides = JSON.parse(localStorage.getItem("thali:overrides") || "{}");
+            const plan = applyOverrides(localOverrides);
+            const todayPlan = plan[dayIdx];
+            const dishId = todayPlan?.[matchedSlot];
+            const dish = dishId ? DISHES.find(d => d.id === dishId) : null;
+            
+            const mealName = dish ? `${dish.emoji} ${dish.name}` : "your meal";
+            
+            try {
+              new Notification("Meal Time Alert! 🍛", {
+                body: `It's time for your ${matchedSlot}! Today's menu: ${mealName}.`,
+                icon: "/favicon.ico",
+              });
+            } catch (err) {
+              console.error("Failed to show notification:", err);
+            }
+          }
+        }
+      }
+    }, 60000); // Check once per minute
+
+    return () => clearInterval(interval);
+  }, [profile.breakfastTime, profile.lunchTime, profile.dinnerTime]);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -302,6 +391,31 @@ function RootComponent() {
           open={selectedItem !== null}
           onOpenChange={(o) => !o && setSelectedItem(null)}
         />
+
+        <AlertDialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-display">Import Shared Meal Plan?</AlertDialogTitle>
+              <AlertDialogDescription>
+                We found a shared meal plan in the link. Do you want to apply these custom meal overrides? This will merge them with your current meal plan.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (sharedOverrides) {
+                    setMany(sharedOverrides);
+                    toast.success("Shared meal plan imported successfully!");
+                  }
+                  setShowImportDialog(false);
+                }}
+              >
+                Import
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </QueryClientProvider>
   );

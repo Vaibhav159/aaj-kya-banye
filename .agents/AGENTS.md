@@ -122,6 +122,7 @@ src/
 │   ├── snacks.ts        # 18 snacks with craving-based filtering
 │   ├── ical.ts          # iCal (.ics) generation
 │   ├── share.ts         # Web Share API / clipboard fallback
+│   ├── share-image.ts   # Canvas drawing utility for weekly sharing image
 │   ├── calendar-server.ts  # Cloudflare calendar feed sync
 │   ├── supabase.ts      # Supabase client initialization
 │   └── utils.ts         # cn() utility

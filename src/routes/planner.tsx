@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +7,7 @@ import { DISHES_BY_ID } from "@/lib/dishes";
 import { applyOverrides, currentDayIndex, useCycleStart, useOverrides } from "@/lib/store";
 import { shareOrCopy, weekSummary } from "@/lib/share";
 import { buildIcs, downloadIcs } from "@/lib/ical";
+import { drawWeeklyPlan } from "@/lib/share-image";
 
 export const Route = createFileRoute("/planner")({
   head: () => ({
@@ -39,6 +40,58 @@ function PlannerPage() {
     if (r === "copied") toast.success("Weekly summary copied");
     else if (r === "failed") toast.error("Could not share");
   };
+
+  const onShareLink = async () => {
+    try {
+      const serialized = btoa(JSON.stringify(overrides)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const shareUrl = `${window.location.origin}${window.location.pathname.replace(/\/planner\/?$/, "")}/?importPlan=${serialized}`;
+      
+      const r = await shareOrCopy("My Aaj Kya Banaye? Meal Plan", `Check out my meal plan overrides on Aaj Kya Banaye?: ${shareUrl}`);
+      if (r === "copied") toast.success("Shareable plan link copied to clipboard!");
+      else if (r === "shared") toast.success("Plan link shared successfully!");
+      else toast.error("Could not generate or share link");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to generate link");
+    }
+  };
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const onShareImage = () => {
+    const canvas = canvasRef.current || document.createElement("canvas");
+    drawWeeklyPlan(canvas, { plan, startIdx: dayIdx });
+    
+    canvas.toBlob(async (blob) => {
+      if (!blob) {
+        toast.error("Failed to generate image");
+        return;
+      }
+      
+      const file = new File([blob], "weekly-meal-plan.png", { type: "image/png" });
+      
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: "Aaj Kya Banaye? Weekly Meal Plan",
+            text: "My weekly Indian vegetarian meal plan!",
+            files: [file],
+          });
+          toast.success("Shared weekly plan image!");
+          return;
+        } catch (e) {
+          console.log("Web Share failed, falling back to download", e);
+        }
+      }
+      
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = "aaj-kya-banaye-weekly-plan.png";
+      link.click();
+      toast.success("Downloaded weekly meal plan image!");
+    }, "image/png");
+  };
+
   const onIcs = () => {
     downloadIcs("thali-week.ics", buildIcs(plan, dayIdx, 7));
     toast.success("Downloaded thali-week.ics — import into your calendar");
@@ -108,6 +161,8 @@ function PlannerPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={onShare}>Share summary</Button>
+          <Button variant="outline" onClick={onShareLink}>Share plan link</Button>
+          <Button variant="outline" onClick={onShareImage}>Share image</Button>
           <Button variant="outline" onClick={onIcs}>Export .ics</Button>
         </div>
       </header>
@@ -215,6 +270,7 @@ function PlannerPage() {
           </div>
         </CardContent>
       </Card>
+      <canvas ref={canvasRef} className="hidden" />
     </div>
   );
 }

@@ -35,6 +35,133 @@ function SettingsPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState<string>("default");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setNotificationsEnabled(window.localStorage.getItem("thali:remindersEnabled") === "true");
+      if (typeof Notification !== "undefined") {
+        setNotificationPermission(Notification.permission);
+      } else {
+        setNotificationPermission("unsupported");
+      }
+    }
+  }, []);
+
+  const toggleNotifications = async () => {
+    if (typeof Notification === "undefined") {
+      toast.error("Notifications are not supported in this browser");
+      return;
+    }
+
+    if (Notification.permission !== "granted") {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
+      if (permission !== "granted") {
+        toast.error("Notification permission denied. Please enable them in browser settings.");
+        return;
+      }
+    }
+
+    const nextVal = !notificationsEnabled;
+    setNotificationsEnabled(nextVal);
+    window.localStorage.setItem("thali:remindersEnabled", String(nextVal));
+    if (nextVal) {
+      toast.success("Meal time notifications enabled!");
+      try {
+        new Notification("Aaj Kya Banaye? 🍛", {
+          body: "Notifications are now active! We'll alert you at your scheduled meal times.",
+          icon: "/favicon.ico",
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    } else {
+      toast.success("Meal time notifications disabled.");
+    }
+  };
+
+  const handleExportJSON = () => {
+    try {
+      const data = {
+        version: 1,
+        profile: readLS("thali:profile", DEFAULT_PROFILE),
+        cycleStart: readLS("thali:cycleStart", null),
+        overrides: readLS("thali:overrides", {}),
+        log: readLS("thali:log", {}),
+        customDishes: readLS("thali:customDishes", []),
+        customRules: readLS("thali:customRules", []),
+        remindersEnabled: localStorage.getItem("thali:remindersEnabled") === "true",
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `aaj-kya-banaye-backup-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("Backup exported successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to export data");
+    }
+  };
+
+  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (!parsed || typeof parsed !== "object") throw new Error("Invalid format");
+        
+        if (parsed.profile) {
+          localStorage.setItem("thali:profile", JSON.stringify(parsed.profile));
+        }
+        if (parsed.cycleStart) {
+          localStorage.setItem("thali:cycleStart", JSON.stringify(parsed.cycleStart));
+        }
+        if (parsed.overrides) {
+          localStorage.setItem("thali:overrides", JSON.stringify(parsed.overrides));
+        }
+        if (parsed.log) {
+          localStorage.setItem("thali:log", JSON.stringify(parsed.log));
+        }
+        if (parsed.customDishes) {
+          localStorage.setItem("thali:customDishes", JSON.stringify(parsed.customDishes));
+        }
+        if (parsed.customRules) {
+          localStorage.setItem("thali:customRules", JSON.stringify(parsed.customRules));
+        }
+        if (typeof parsed.remindersEnabled === "boolean") {
+          localStorage.setItem("thali:remindersEnabled", String(parsed.remindersEnabled));
+        }
+
+        toast.success("Backup imported successfully!");
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          toast.promise(syncAllData(), {
+            loading: "Syncing imported data with cloud...",
+            success: "Cloud sync complete!",
+            error: "Failed to sync with cloud. Try manually syncing.",
+          });
+        }
+
+        window.dispatchEvent(new Event("thali:sync"));
+        setForm({ ...DEFAULT_PROFILE, ...readLS<Partial<Profile>>("thali:profile", {}) });
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to parse JSON file. Ensure it is a valid backup file.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
   useEffect(() => {
     if (hydrated) setForm(profile);
   }, [hydrated, profile]);
@@ -402,6 +529,21 @@ function SettingsPage() {
             )}
           </div>
 
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-secondary/40 p-4">
+            <div>
+              <div className="font-medium">Browser Notifications</div>
+              <p className="text-sm text-muted-foreground">
+                Get alerted on your device at your scheduled breakfast, lunch, and dinner times.
+              </p>
+            </div>
+            <Button
+              variant={notificationsEnabled ? "destructive" : "default"}
+              onClick={toggleNotifications}
+            >
+              {notificationsEnabled ? "Disable Alerts" : "Enable Alerts"}
+            </Button>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-muted/40 p-4">
             <div>
               <div className="font-medium">Telegram reminders</div>
@@ -410,6 +552,33 @@ function SettingsPage() {
               </p>
             </div>
             <Button variant="outline" disabled title="Coming soon — needs Telegram bot connection">Connect Telegram</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Backup & Restore</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Export your complete Aaj Kya Banaye? meal plan data, profile settings, and logs as a JSON file, or restore a previous backup.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Button onClick={handleExportJSON}>Export Data (JSON)</Button>
+            <label className="inline-flex cursor-pointer">
+              <Button asChild variant="outline" className="cursor-pointer">
+                <span>
+                  Import Data (JSON)
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImportJSON}
+                    className="sr-only"
+                  />
+                </span>
+              </Button>
+            </label>
           </div>
         </CardContent>
       </Card>

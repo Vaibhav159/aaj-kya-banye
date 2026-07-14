@@ -30,9 +30,10 @@ Prioritized backlog. Agents: build from top down when asked "what's next." Updat
 - ✅ Calculate daily goals basis user target
 
 ### P3 — Integrations & social
-- ⬜ Shared meal plans (generate shareable link)
-- ⬜ Import/export meal plan as JSON
-- ⬜ Notifications / reminders (meal time alerts)
+- ✅ Shared meal plans (generate shareable link)
+- ✅ Import/export meal plan as JSON
+- ✅ Notifications / reminders (meal time alerts)
+- ✅ Share Weekly meal plans as image 
 
 ### P4 - Good to have 
 - ⬜ Meal photo integration (upload or generate per dish)
