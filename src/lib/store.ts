@@ -493,6 +493,17 @@ export function useOverrides() {
     syncOverride(key, dishId);
   }, []);
 
+  const setMany = useCallback((newOverrides: Overrides) => {
+    setOverrides((prev) => {
+      const next = { ...prev, ...newOverrides };
+      if (typeof window !== "undefined") window.localStorage.setItem(OVERRIDES_KEY, JSON.stringify(next));
+      return next;
+    });
+    Object.entries(newOverrides).forEach(([key, dishId]) => {
+      syncOverride(key, dishId);
+    });
+  }, []);
+
   const clearAll = useCallback(() => {
     setOverrides({});
     if (typeof window !== "undefined") {
@@ -504,7 +515,7 @@ export function useOverrides() {
     });
   }, []);
 
-  return { overrides, setOne, clearAll, hydrated };
+  return { overrides, setOne, setMany, clearAll, hydrated };
 }
 
 export function applyOverrides(overrides: Overrides): DayPlan[] {
