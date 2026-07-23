@@ -102,12 +102,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "theme-color", content: "#d97706" },
       { title: "Aaj Kya Banaye? — Indian Vegetarian Meal Planner" },
-      { name: "description", content: "A 42-day rotating Indian vegetarian meal plan with swap suggestions, macro tracking, and a smart grocery list." },
+      { name: "description", content: "A 42-day rotating Indian vegetarian meal planner with macro tracking, intelligent dish swap engine, craving-based snacks, and smart grocery list." },
+      { name: "keywords", content: "Indian meal planner, vegetarian meal plan, Indian recipes, daily thali, macro tracking, grocery list, Indian food diet plan" },
       { name: "author", content: "Aaj Kya Banaye?" },
-      { property: "og:title", content: "Aaj Kya Banaye? — Indian Vegetarian Meal Planner" },
-      { property: "og:description", content: "42-day Indian vegetarian meal plan with macros, swaps and grocery aggregation." },
-      { name: "google-site-verification", content: "q7O2uNWrbW9e8_Cdk1kfyJd5kntd7VHh6JH_9M-QWdI" },
+      { name: "robots", content: "index, follow" },
+      { property: "og:site_name", content: "Aaj Kya Banaye?" },
+      { property: "og:type", content: "website" },
+      { property: "og:title", content: "Aaj Kya Banaye? — 42-Day Indian Vegetarian Meal Planner" },
+      { property: "og:description", content: "Smart 42-day rotating Indian vegetarian meal plan with macros, instant swaps, snacks, and grocery list." },
+      { property: "og:image", content: "/icon-512.png" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Aaj Kya Banaye? — Indian Vegetarian Meal Planner" },
+      { name: "twitter:description", content: "Smart 42-day rotating Indian vegetarian meal planner with macro tracking and custom nutrition rules." },
+      { name: "twitter:image", content: "/icon-512.png" },
+      { name: "google-site-verification", content: "q7O2uNWrbW9e8_Cdk1kfyJd5kntd7VHh6JH_9M-QWdI" },
     ],
     links: [
       { rel: "manifest", href: "/manifest.webmanifest" },
@@ -125,7 +133,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap",
       },
     ],
-
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "Aaj Kya Banaye?",
+          "alternateName": "Thali Meal Planner",
+          "applicationCategory": "HealthApplication",
+          "operatingSystem": "All",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "description": "A 42-day rotating Indian vegetarian meal planner with macro tracking, custom nutrition rules, and aggregated grocery lists."
+        }),
+      },
+    ],
   }),
   shellComponent: RootShell,
   component: RootComponent,

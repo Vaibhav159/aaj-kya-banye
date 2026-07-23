@@ -25,13 +25,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/planner")({
-
   head: () => ({
     meta: [
-      { title: "Planner · Aaj Kya Banaye?" },
-      { name: "description", content: "Rolling 7-day view and full 42-day rotation of your Indian vegetarian meal plan." },
-      { property: "og:title", content: "Planner · Aaj Kya Banaye?" },
-      { property: "og:description", content: "7-day and 42-day meal planner with calorie totals." },
+      { title: "42-Day Indian Vegetarian Meal Planner & Calendar · Aaj Kya Banaye?" },
+      { name: "description", content: "Interactive 42-day rotating Indian vegetarian meal calendar. Swap dishes, balance daily calories, shuffle plans based on custom nutrition rules, and export to iCal." },
+      { property: "og:title", content: "42-Day Indian Vegetarian Meal Calendar · Aaj Kya Banaye?" },
+      { property: "og:description", content: "42-day rotating meal plan calendar with constraint solver and macro breakdown." },
     ],
   }),
   component: PlannerPage,

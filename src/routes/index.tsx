@@ -34,10 +34,10 @@ import { Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Today · Aaj Kya Banaye?" },
-      { name: "description", content: "Today's breakfast, lunch and dinner with real-time macros and one-tap swaps." },
-      { property: "og:title", content: "Today · Aaj Kya Banaye?" },
-      { property: "og:description", content: "Today's Indian vegetarian meals with macros and swaps." },
+      { title: "Today's Indian Vegetarian Meals & Macro Tracker · Aaj Kya Banaye?" },
+      { name: "description", content: "View today's curated Indian vegetarian breakfast, lunch, and dinner with real-time calorie and macro breakdown, meal logging, and one-tap swaps." },
+      { property: "og:title", content: "Today's Meals & Macros · Aaj Kya Banaye?" },
+      { property: "og:description", content: "Interactive daily Indian vegetarian meal planner with calorie and macro tracking." },
     ],
   }),
   component: Dashboard,

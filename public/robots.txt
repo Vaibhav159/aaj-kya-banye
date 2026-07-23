@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://vaibhav159.github.io/aaj-kya-banye/sitemap.xml

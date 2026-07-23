@@ -21,10 +21,10 @@ import { DISHES } from "@/lib/dishes";
 export const Route = createFileRoute("/rules")({
   head: () => ({
     meta: [
-      { title: "Custom Rules · Aaj Kya Banaye?" },
-      { name: "description", content: "Create your own dietary rules — filter dishes by cuisine, cooking style, equipment, prep time and more." },
-      { property: "og:title", content: "Custom Rules · Aaj Kya Banaye?" },
-      { property: "og:description", content: "Personal dietary rules for your meal plan." },
+      { title: "Custom Diet & Meal Rules Engine · Aaj Kya Banaye?" },
+      { name: "description", content: "Customize meal planning constraints: set max frequency for fried foods, avoid specific ingredients, require daily legumes, or cap calories per meal." },
+      { property: "og:title", content: "Custom Diet & Meal Rules Engine · Aaj Kya Banaye?" },
+      { property: "og:description", content: "Rule engine for custom dietary preferences, meal frequency limits, and nutrition goals." },
     ],
   }),
   component: RulesPage,
