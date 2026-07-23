@@ -282,10 +282,10 @@ function RuleRow({
           <Button size="sm" variant={rule.enabled ? "default" : "outline"} onClick={onToggle}>
             {rule.enabled ? "On" : "Off"}
           </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsEditing(true)}>
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsEditing(true)} aria-label="Edit rule">
             <Pencil className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onRemove}>
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={onRemove} aria-label="Delete rule">
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
