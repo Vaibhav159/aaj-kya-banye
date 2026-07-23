@@ -56,7 +56,7 @@ Keyboard navigation, focus states, semantic HTML, screen reader support, `prefer
 - **TypeScript** — strict mode enabled, avoid `any`
 
 ## Package Manager
-- **Bun**
+- **npm** (uses `package-lock.json`)
 
 ## Styling
 - **Tailwind CSS v4** (`@tailwindcss/vite`)
