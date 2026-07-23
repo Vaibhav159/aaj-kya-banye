@@ -548,16 +548,23 @@ function SwapList({
     const query = q.toLowerCase();
     return allDishes
       .filter((d) => d.id !== current.id)
-      .filter((d) => d.slots.includes(slot))
-      .filter((d) => isSwapAllowed(d, slot, dayIdx, plan, customRules))
-      .filter((d) => d.name.toLowerCase().includes(query))
-      .slice(0, 10);
+      .filter(
+        (d) =>
+          d.name.toLowerCase().includes(query) ||
+          (d.cuisine && d.cuisine.toLowerCase().includes(query)) ||
+          d.tags.some((t) => t.toLowerCase().includes(query))
+      )
+      .map((d) => ({
+        dish: d,
+        passesRules: isSwapAllowed(d, slot, dayIdx, plan, customRules),
+      }))
+      .slice(0, 15);
   }, [q, allDishes, current.id, slot, dayIdx, plan, customRules]);
 
   return (
     <div className="space-y-4">
       <Input
-        placeholder={`Search all ${slot} dishes to swap...`}
+        placeholder="Search all dishes to swap..."
         value={q}
         onChange={(e) => setQ(e.target.value)}
         className="w-full"
@@ -569,7 +576,7 @@ function SwapList({
           {smartCandidates.length === 0 ? (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">No swap candidates match all your rules within ±150 kcal.</p>
-              <p className="text-xs text-muted-foreground">Try searching below — rule-incompatible dishes are filtered but you can still find options by name.</p>
+              <p className="text-xs text-muted-foreground">Try searching above — you can search and select any dish even if it doesn't meet all rules.</p>
             </div>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
@@ -595,10 +602,10 @@ function SwapList({
         <div className="space-y-2">
           <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Search Results ({searchResults.length})</h3>
           {searchResults.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No dishes matching "{q}" pass rules.</p>
+            <p className="text-sm text-muted-foreground">No dishes matching "{q}".</p>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
-              {searchResults.map((d) => (
+              {searchResults.map(({ dish: d, passesRules }) => (
                 <button
                   key={d.id}
                   onClick={() => onPick(d.id)}
@@ -606,7 +613,14 @@ function SwapList({
                 >
                   <span className="text-3xl">{d.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <div className="truncate font-medium">{d.name}</div>
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="truncate font-medium">{d.name}</div>
+                      {!passesRules && (
+                        <span className="shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                          Breaks rules
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground">
                       {d.kcal} kcal · P {d.protein} · C {d.carbs} · F {d.fat}
                     </div>
