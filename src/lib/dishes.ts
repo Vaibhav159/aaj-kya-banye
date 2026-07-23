@@ -86,11 +86,38 @@ export const CATEGORY_EMOJI: Record<IngredientCategory, string> = {
   other: "🧺",
 };
 
+export const CUISINE_LABELS: Record<Cuisine, string> = {
+  "north-indian": "North Indian",
+  "south-indian": "South Indian",
+  "gujarati": "Gujarati",
+  "punjabi": "Punjabi",
+  "bengali": "Bengali",
+  "maharashtrian": "Maharashtrian",
+  "indo-chinese": "Indo-Chinese",
+  "continental": "Continental",
+};
+
+export function getDishBase(dish: Dish): string {
+  const n = dish.name.toLowerCase();
+  if (dish.tags.includes("paratha") || n.includes("paratha")) return "Paratha";
+  if (dish.tags.includes("pizza") || n.includes("pizza")) return "Pizza";
+  if (n.includes("roti") || n.includes("phulka") || n.includes("chapati")) return "Roti";
+  if (n.includes("rice") || n.includes("pulao") || n.includes("biryani") || n.includes("khichdi")) return "Rice";
+  if (n.includes("dosa") || n.includes("idli") || n.includes("uttapam")) return "Dosa/Idli";
+  if (n.includes("poha") || n.includes("upma")) return "Poha/Upma";
+  if (n.includes("puri") || n.includes("poori")) return "Puri";
+  if (n.includes("paneer")) return "Paneer";
+  if (dish.tags.includes("dal") || dish.tags.includes("legume") || n.includes("dal") || n.includes("curry")) return "Dal & Curry";
+  if (dish.tags.includes("light")) return "Light Meal";
+  return "Special";
+}
+
 export function youtubeSearchUrl(name: string): string {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(name + " recipe")}`;
 }
 
 export const DISHES: Dish[] = [
+
   {
     id: "l1",
     name: "Achari Paneer + Roti",

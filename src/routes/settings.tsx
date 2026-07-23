@@ -544,6 +544,28 @@ function SettingsPage() {
             </Button>
           </div>
 
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <div>
+              <div className="font-medium flex items-center gap-2">
+                <span>📱 Progressive Web App (PWA)</span>
+                <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-600 font-semibold dark:text-emerald-400">
+                  Offline Ready
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Install Thali on your mobile home screen or desktop to use it like a native app, complete with instant loading and offline supermarket access.
+              </p>
+            </div>
+            <Button
+              variant="default"
+              onClick={() => {
+                toast.success("To install Thali, tap Share or 'Add to Home Screen' in your browser menu!");
+              }}
+            >
+              Install App Shortcut
+            </Button>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-muted/40 p-4">
             <div>
               <div className="font-medium">Telegram reminders</div>
@@ -555,6 +577,7 @@ function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader>

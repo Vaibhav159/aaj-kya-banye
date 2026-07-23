@@ -36,11 +36,13 @@ Prioritized backlog. Agents: build from top down when asked "what's next." Updat
 - ✅ Share Weekly meal plans as image 
 
 ### P4 - Enhanced
-- Make dish cards interactive (mark favorite, set rule, view details)
-- Add tooltips for stats and icons
-- Add more filters to dishes
-- Make "Generate Plan" less hidden (maybe secondary button on planner)
-- Add Base & Cuisine badges (e.g., Roti / Rice / Dal & North Indian / South Indian) everywhere
+- ✅ Make dish cards interactive (mark favorite, set rule, view details)
+- ✅ Add tooltips for stats and icons
+- ✅ Add more filters to dishes (cuisine, base type, favorites toggle, slot)
+- ✅ Make "Generate Plan" less hidden (prominent secondary button on planner header)
+- ✅ Add Base & Cuisine badges (e.g., Roti / Rice / Dal & North Indian / South Indian) everywhere
+- ✅ PWA support (service worker, installable, offline cache)
+
 
 ### P5 - Good to have 
 - Add search-based planning (type a dish, slot → search pool + suggestions)
@@ -52,7 +54,6 @@ Prioritized backlog. Agents: build from top down when asked "what's next." Updat
 - ⬜ "Cook now" timer with prep steps
 - ⬜ AI meal recommendations based on history
 - ⬜ Recipe page per dish (ingredients, steps, video link)
-- ⬜ PWA support (service worker, installable, offline cache)
 
 ### P6 — Future / TBD
 - ⬜ "What's in my fridge" reverse ingredient search (select ingredients → find matching dishes)

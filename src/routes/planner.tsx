@@ -6,17 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DISHES_BY_ID } from "@/lib/dishes";
-import { applyOverrides, currentDayIndex, useCycleStart, useOverrides } from "@/lib/store";
+import { DISHES_BY_ID, getDishBase, CUISINE_LABELS, type Dish } from "@/lib/dishes";
+import { applyOverrides, currentDayIndex, useCycleStart, useOverrides, useFavorites } from "@/lib/store";
 import { type DayPlan } from "@/lib/plan";
 import { shareOrCopy, weekSummary } from "@/lib/share";
 import { buildIcs, downloadIcs } from "@/lib/ical";
 import { drawWeeklyPlan } from "@/lib/share-image";
 import { generateSolvedPlan, type SolverResult } from "@/lib/plan-shuffler";
 import { useCustomRules } from "@/lib/custom-rules";
-import { Shuffle, ArrowRight } from "lucide-react";
+import { Shuffle, ArrowRight, Sparkles, Heart } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { DishDetailDialog } from "@/components/dish-detail";
 
 export const Route = createFileRoute("/planner")({
+
   head: () => ({
     meta: [
       { title: "Planner · Aaj Kya Banaye?" },
@@ -218,6 +221,9 @@ function PlannerPage() {
     }
   };
 
+  const [detailDish, setDetailDish] = useState<Dish | null>(null);
+  const { isFavorite } = useFavorites();
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -226,7 +232,16 @@ function PlannerPage() {
           <h1 className="font-display text-4xl font-semibold">Next 7 days</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setIsShuffleOpen(true)} className="flex items-center gap-1.5 bg-primary hover:bg-primary/95 cursor-pointer">
+          <Button
+            onClick={() => {
+              setIsShuffleOpen(true);
+              startShuffle("7days");
+            }}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white shadow-xs cursor-pointer"
+          >
+            <Sparkles className="h-4 w-4" /> Generate Plan
+          </Button>
+          <Button onClick={() => setIsShuffleOpen(true)} variant="outline" className="flex items-center gap-1.5 cursor-pointer">
             <Shuffle className="h-4 w-4" /> Shuffle / Rotate
           </Button>
           <Button variant="outline" onClick={onShare}>Share summary</Button>
@@ -242,16 +257,18 @@ function PlannerPage() {
           const kcal = dayKcal([d.breakfast, d.lunch, d.dinner]);
           return (
             <Card key={i} className={i === 0 ? "border-primary shadow-md" : ""}>
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="text-xs uppercase text-muted-foreground">{dayLabels[date.getDay()]}</div>
                 <div className="font-display text-2xl font-semibold">{date.getDate()}</div>
-                <div className="mt-2 text-xs text-muted-foreground">Day {d.day + 1}</div>
-                <div className="mt-2 font-medium text-primary">{kcal} kcal</div>
-                <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
+                <div className="mt-1 text-[11px] text-muted-foreground">Day {d.day + 1}</div>
+                <div className="mt-1 font-medium text-primary text-xs">{kcal} kcal</div>
+                <ul className="mt-3 space-y-2 text-xs">
                   {(["breakfast", "lunch", "dinner"] as const).map((slot) => {
                     const dishId = d[slot];
                     const dish = DISHES_BY_ID[dishId];
                     if (!dish) return null;
+                    const base = getDishBase(dish);
+                    const fav = isFavorite(dish.id);
                     return (
                       <li
                         key={slot}
@@ -259,11 +276,22 @@ function PlannerPage() {
                         onDragStart={(e) => handleDragStart(e, d.day, slot, dishId)}
                         onDragOver={handleDragOver}
                         onDrop={(e) => handleDrop(e, d.day, slot)}
-                        className="flex items-center gap-1.5 cursor-grab active:cursor-grabbing hover:bg-secondary/70 rounded p-1 transition-colors border border-transparent hover:border-border select-none"
-                        title="Drag to swap this meal with another slot"
+                        onClick={() => setDetailDish(dish)}
+                        className="group flex flex-col gap-1 cursor-grab active:cursor-grabbing hover:bg-secondary/70 rounded p-1.5 transition-colors border border-transparent hover:border-border select-none"
+                        title="Click to view details, or drag to swap meal"
                       >
-                        <span className="text-sm shrink-0">{dish.emoji}</span>
-                        <span className="truncate font-medium text-foreground/80">{dish.name}</span>
+                        <div className="flex items-center gap-1.5 justify-between">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className="text-sm shrink-0">{dish.emoji}</span>
+                            <span className="truncate font-medium text-foreground/90">{dish.name}</span>
+                          </div>
+                          {fav && <Heart className="h-3 w-3 fill-rose-500 text-rose-500 shrink-0" />}
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <span className="capitalize text-muted-foreground/80">{slot[0].toUpperCase()}</span>
+                          <span>·</span>
+                          <span className="font-medium text-primary/80">{base}</span>
+                        </div>
                       </li>
                     );
                   })}
@@ -273,6 +301,9 @@ function PlannerPage() {
           );
         })}
       </div>
+
+      <DishDetailDialog dish={detailDish} open={detailDish !== null} onOpenChange={(o) => !o && setDetailDish(null)} />
+
 
       <Card>
         <CardHeader>

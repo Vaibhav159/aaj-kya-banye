@@ -695,3 +695,34 @@ export function getMealDisplayStatus(
   }
   return "eaten";
 }
+
+const FAVORITES_KEY = "thali:favorites";
+
+export function useFavorites() {
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setFavorites(readLS<string[]>(FAVORITES_KEY, []));
+    setHydrated(true);
+  }, []);
+
+  const toggleFavorite = useCallback((dishId: string) => {
+    setFavorites((prev) => {
+      const next = prev.includes(dishId)
+        ? prev.filter((id) => id !== dishId)
+        : [...prev, dishId];
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
+      }
+      return next;
+    });
+  }, []);
+
+  const isFavorite = useCallback(
+    (dishId: string) => favorites.includes(dishId),
+    [favorites]
+  );
+
+  return { favorites, toggleFavorite, isFavorite, hydrated };
+}

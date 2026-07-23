@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { DISHES, DISHES_BY_ID, dishesForSlot, type Dish, type Slot } from "@/lib/dishes";
+import { DISHES, DISHES_BY_ID, dishesForSlot, type Dish, type Slot, CUISINE_LABELS, getDishBase } from "@/lib/dishes";
 import {
   applyOverrides,
   computeStreak,
@@ -16,9 +16,12 @@ import {
   useOverrides,
   useProfile,
   useCustomDishes,
+  useFavorites,
   getMealDisplayStatus,
   type Profile,
 } from "@/lib/store";
+import { Heart } from "lucide-react";
+
 import { checkDay, isSwapAllowed, RULES } from "@/lib/rules";
 import { DishDetailDialog } from "@/components/dish-detail";
 import { shareOrCopy, todaySummary } from "@/lib/share";
@@ -169,6 +172,11 @@ function MealCard({
   onToggle: (s: "eaten" | "skipped" | null) => void;
 }) {
   const meta = SLOT_META[slot];
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const fav = isFavorite(dish.id);
+  const base = getDishBase(dish);
+  const cuisineName = dish.cuisine ? CUISINE_LABELS[dish.cuisine] : null;
+
   return (
     <Card className="overflow-hidden">
       <div className="flex items-center justify-between border-b border-border bg-secondary/60 px-5 py-3">
@@ -178,13 +186,39 @@ function MealCard({
         <span className="text-xs text-muted-foreground">{meta.time}</span>
       </div>
       <CardContent className="space-y-4 p-5">
-        <button onClick={onDetails} className="flex w-full items-start gap-3 text-left">
-          <span className="text-4xl leading-none">{dish.emoji}</span>
-          <div>
-            <h3 className="font-display text-xl font-semibold">{dish.name}</h3>
-            <p className="text-sm text-muted-foreground">{dish.kcal} kcal · tap for details</p>
-          </div>
-        </button>
+        <div className="flex items-start justify-between gap-2">
+          <button onClick={onDetails} className="flex flex-1 items-start gap-3 text-left min-w-0">
+            <span className="text-4xl leading-none shrink-0">{dish.emoji}</span>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-display text-xl font-semibold truncate">{dish.name}</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">{dish.kcal} kcal · tap for details</p>
+            </div>
+          </button>
+          <button
+            onClick={() => toggleFavorite(dish.id)}
+            className={`p-1.5 rounded-full transition-colors ${fav ? "text-rose-600 bg-rose-50 dark:bg-rose-950/30" : "text-muted-foreground hover:text-rose-500"}`}
+            title={fav ? "Remove favorite" : "Mark favorite"}
+          >
+            <Heart className={`h-4 w-4 ${fav ? "fill-current" : ""}`} />
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 items-center">
+          {cuisineName && (
+            <Badge variant="default" className="text-[10px] bg-amber-600 dark:bg-amber-700 py-0">
+              🗺️ {cuisineName}
+            </Badge>
+          )}
+          <Badge variant="secondary" className="text-[10px] font-medium py-0">
+            🍞 {base}
+          </Badge>
+          {dish.prepMinutes && (
+            <Badge variant="outline" className="text-[10px] py-0">
+              ⏱ {dish.prepMinutes}m
+            </Badge>
+          )}
+        </div>
+
         <div className="grid grid-cols-3 gap-2 text-center text-xs">
           <Macro label="Protein" value={dish.protein} />
           <Macro label="Carbs" value={dish.carbs} />
@@ -211,6 +245,7 @@ function MealCard({
     </Card>
   );
 }
+
 
 function Macro({ label, value }: { label: string; value: number }) {
   return (
