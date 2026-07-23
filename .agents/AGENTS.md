@@ -115,9 +115,10 @@ src/
 ├── lib/                 # ALL business logic
 │   ├── store.ts         # State hooks: profile, cycle, overrides, meal log, custom dishes
 │   ├── dishes.ts        # Dish database (73 dishes), types, helpers
-│   ├── plan.ts          # 42-day plan generation algorithm
-│   ├── rules.ts         # 8 built-in nutrition rules + rule checker
-│   ├── custom-rules.ts  # User-configurable rules engine
+│   ├── plan.ts          # 42-day static base plan (hardcoded dish grid)
+│   ├── plan-shuffler.ts # Constraint solver: backtracking + MRV + hill-climbing
+│   ├── rules.ts         # Rule checker (checkDay, isSwapAllowed) for existing plans
+│   ├── custom-rules.ts  # Rules engine, types, classifyRule, checkFeasibility, countMatchingDishes
 │   ├── grocery.ts       # Ingredient aggregation by category
 │   ├── snacks.ts        # 18 snacks with craving-based filtering
 │   ├── ical.ts          # iCal (.ics) generation
@@ -125,7 +126,9 @@ src/
 │   ├── share-image.ts   # Canvas drawing utility for weekly sharing image
 │   ├── calendar-server.ts  # Cloudflare calendar feed sync
 │   ├── supabase.ts      # Supabase client initialization
-│   └── utils.ts         # cn() utility
+│   ├── utils.ts         # cn() utility
+│   └── __tests__/
+│       └── plan-solver.test.ts  # Constraint solver tests (vitest)
 │
 ├── routes/              # TanStack Router file-based routes
 │   ├── __root.tsx       # Root layout: header, footer, bottom nav, providers
@@ -222,19 +225,23 @@ Grocery aggregation merges duplicates, normalizes units (g/ml/pc), and groups by
 
 # 📏 Rules Engine
 
-### 8 Built-in Rules
-1. Pizza max 1×/week
-2. Paratha only at breakfast/lunch
-3. Fried breakfasts max 2×/week
-4. Dal or legume every day
-5. Leafy greens every day
-6. No repeat within 3 days
-7. Dinner lighter than lunch
-8. Sweets max 2×/week
+### Prebuilt Rules (Flexible Custom Rules)
+All rules (previously built-in rules) are now custom rules prebuilt/pre-populated by default:
+1. Pizza max 1×/week (max frequency)
+2. Paratha only at breakfast/lunch (avoid slot)
+3. Fried breakfasts max 2×/week (max frequency)
+4. Dal or legume every day (require)
+5. Leafy greens every day (require)
+6. No repeat within 3 days (no-repeat interval)
+7. Dinner lighter than lunch (lighter-dinner comparison)
+8. Sweets max 2×/week (max frequency)
+9. Protein Paglu (minimum protein threshold)
+10. Light Dinner (maximum calorie threshold)
+11. Low Carb (maximum carb threshold)
 
 ### Custom Rules (`custom-rules.ts`)
-Users can create avoid/prefer/require rules scoped to any slot, matching on:
-cuisine, cookingType, equipment, tag, maxPrepMinutes, maxSpice
+Users can create avoid/prefer/require/frequency/no-repeat/lighter-dinner rules scoped to any slot, matching on:
+cuisine, cookingType, equipment, tag, tags, maxPrepMinutes, maxSpice, minProtein, maxCarbs, maxKcal, minDaysBetweenRepeat, maxKcalDifference
 
 ---
 

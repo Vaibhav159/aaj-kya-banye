@@ -285,28 +285,6 @@ function RulesCard({ checks, customRules }: { checks: ReturnType<typeof checkDay
         <CardTitle className="font-display text-2xl">Rule Tracker</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-        {RULES.map((rule) => {
-          const c = checks.find((x) => x.id === rule.id);
-          return (
-            <div key={rule.id} className="flex items-start justify-between gap-3 rounded-md border border-border/70 bg-secondary/30 p-3">
-              <div>
-                <div className="text-sm font-medium">{rule.label}</div>
-                <div className="text-xs text-muted-foreground">{rule.description}</div>
-              </div>
-              <span
-                className={
-                  "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium " +
-                  (c?.passed
-                    ? "bg-success/15 text-success"
-                    : "bg-destructive/15 text-destructive")
-                }
-                style={{ color: c?.passed ? "var(--color-success)" : "var(--color-destructive)" }}
-              >
-                {c?.passed ? "✓" : "!"} {c?.detail}
-              </span>
-            </div>
-          );
-        })}
         {enabledCustomRules.map((rule) => {
           const c = checks.find((x) => x.id === rule.id);
           if (!c) return null;
@@ -330,6 +308,11 @@ function RulesCard({ checks, customRules }: { checks: ReturnType<typeof checkDay
             </div>
           );
         })}
+        {enabledCustomRules.length === 0 && (
+          <p className="text-sm text-muted-foreground p-3 text-center">
+            No rules active. Configure them in settings.
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -392,7 +375,10 @@ function SwapList({
         <div className="space-y-2">
           <h4 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Smart Suggestions (±150 kcal)</h4>
           {smartCandidates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No recommended swap candidates match your rules right now.</p>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">No swap candidates match all your rules within ±150 kcal.</p>
+              <p className="text-xs text-muted-foreground">Try searching below — rule-incompatible dishes are filtered but you can still find options by name.</p>
+            </div>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
               {smartCandidates.map((d) => (
