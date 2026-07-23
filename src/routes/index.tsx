@@ -375,7 +375,10 @@ function SwapList({
         <div className="space-y-2">
           <h4 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Smart Suggestions (±150 kcal)</h4>
           {smartCandidates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No recommended swap candidates match your rules right now.</p>
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">No swap candidates match all your rules within ±150 kcal.</p>
+              <p className="text-xs text-muted-foreground">Try searching below — rule-incompatible dishes are filtered but you can still find options by name.</p>
+            </div>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
               {smartCandidates.map((d) => (

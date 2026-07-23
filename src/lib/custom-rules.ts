@@ -36,12 +36,12 @@ export const EXAMPLE_RULES: CustomRule[] = [
   // Migrated from built-in Rule Tracker (all enabled by default)
   { id: "r-pizza-weekly", label: "Pizza · max 1×/week", kind: "max-frequency", scope: "any", match: { tag: "pizza", frequencyLimit: 1 }, enabled: true },
   { id: "r-paratha-slot", label: "Paratha only breakfast or lunch", kind: "avoid", scope: "dinner", match: { tag: "paratha" }, enabled: true },
-  { id: "r-fried-breakfast", label: "Fried breakfasts · max 2×/week", kind: "max-frequency", scope: "breakfast", match: { tag: "fried-breakfast", frequencyLimit: 2 }, enabled: true },
+  { id: "r-fried-breakfast", label: "Fried breakfasts · max 2×/week", kind: "max-frequency", scope: "breakfast", match: { tag: "fried-breakfast", frequencyLimit: 2 }, enabled: false },
   { id: "r-dal-daily", label: "Dal or legume every day", kind: "require", scope: "any", match: { tags: ["dal", "legume"] }, enabled: true },
   { id: "r-leafy-daily", label: "Leafy greens every day", kind: "require", scope: "any", match: { tag: "leafy" }, enabled: true },
   { id: "r-no-repeat-3", label: "No repeat within 3 days", kind: "no-repeat", scope: "any", match: { minDaysBetweenRepeat: 3 }, enabled: true },
   { id: "r-lighter-dinner", label: "Dinner lighter than lunch", kind: "lighter-dinner", scope: "dinner", match: { maxKcalDifference: 0 }, enabled: true },
-  { id: "r-sweets-weekly", label: "Sweets · max 2×/week", kind: "max-frequency", scope: "any", match: { tag: "sweet", frequencyLimit: 2 }, enabled: true },
+  { id: "r-sweets-weekly", label: "Sweets · max 2×/week", kind: "max-frequency", scope: "any", match: { tag: "sweet", frequencyLimit: 2 }, enabled: false },
 
   // New prebuilt rules (disabled by default)
   { id: "r-protein-paglu", label: "Protein Paglu · Min 20g protein", kind: "require", scope: "any", match: { minProtein: 20 }, enabled: false },
@@ -186,6 +186,52 @@ export function preferenceScore(dish: Dish, slot: Slot, rules: CustomRule[]): nu
     if (dishMatches(dish, r.match)) s += 1;
   }
   return s;
+}
+
+/** Hard = must-satisfy during generation. Soft = optimize-after.
+ * ponytail: require/avoid are non-negotiable. Tight frequency caps (≤2) are hard
+ * because violating them is obvious. Everything else is soft and gets hill-climbed. */
+export function classifyRule(r: CustomRule): "hard" | "soft" {
+  if (r.kind === "avoid" || r.kind === "require") return "hard";
+  if (r.kind === "max-frequency" && (r.match.frequencyLimit ?? 1) <= 2) return "hard";
+  return "soft";
+}
+
+/** Quick check: can the dish pool satisfy all hard require rules for a given slot?
+ * Returns rule IDs that are impossible to satisfy. */
+export function checkFeasibility(
+  rules: CustomRule[],
+  pool: import("./dishes").Dish[],
+): { feasible: boolean; impossible: string[] } {
+  const impossible: string[] = [];
+  for (const r of rules) {
+    if (!r.enabled || r.kind !== "require") continue;
+    const slots: import("./dishes").Slot[] = r.scope === "any"
+      ? ["breakfast", "lunch", "dinner"]
+      : [r.scope];
+    for (const slot of slots) {
+      const matching = pool.filter(
+        (d) => d.slots.includes(slot) && dishMatches(d, r.match),
+      );
+      if (matching.length === 0) {
+        impossible.push(r.id);
+        break;
+      }
+    }
+  }
+  return { feasible: impossible.length === 0, impossible };
+}
+
+/** Count how many dishes in pool match a rule's match criteria for a given slot. */
+export function countMatchingDishes(
+  match: RuleMatch,
+  slot: import("./dishes").Slot | "any",
+  pool: import("./dishes").Dish[],
+): number {
+  return pool.filter((d) => {
+    if (slot !== "any" && !d.slots.includes(slot)) return false;
+    return dishMatches(d, match);
+  }).length;
 }
 
 export const RULE_FIELD_OPTIONS = {

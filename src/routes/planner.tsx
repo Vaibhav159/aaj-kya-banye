@@ -10,7 +10,7 @@ import { type DayPlan } from "@/lib/plan";
 import { shareOrCopy, weekSummary } from "@/lib/share";
 import { buildIcs, downloadIcs } from "@/lib/ical";
 import { drawWeeklyPlan } from "@/lib/share-image";
-import { generateShuffledPlan } from "@/lib/plan-shuffler";
+import { generateSolvedPlan, type SolverResult } from "@/lib/plan-shuffler";
 import { useCustomRules } from "@/lib/custom-rules";
 import { Shuffle, ArrowRight } from "lucide-react";
 
@@ -38,13 +38,15 @@ function PlannerPage() {
   const plan = useMemo(() => applyOverrides(overrides), [overrides]);
 
   const [isShuffleOpen, setIsShuffleOpen] = useState(false);
-  const [previewPlan, setPreviewPlan] = useState<DayPlan[] | null>(null);
+  const [solverResult, setSolverResult] = useState<SolverResult | null>(null);
   const [shuffleRange, setShuffleRange] = useState<"7days" | "42days">("7days");
+
+  const previewPlan = solverResult?.plan ?? null;
 
   const startShuffle = (range: "7days" | "42days") => {
     setShuffleRange(range);
-    const shuffled = generateShuffledPlan(plan, range, dayIdx, customRules);
-    setPreviewPlan(shuffled);
+    const result = generateSolvedPlan(plan, range, dayIdx, customRules);
+    setSolverResult(result);
   };
 
   const applyPreview = () => {
@@ -62,9 +64,14 @@ function PlannerPage() {
     }
     
     setMany(nextOverrides);
-    setPreviewPlan(null);
+    setSolverResult(null);
     setIsShuffleOpen(false);
-    toast.success(`Successfully shuffled ${shuffleRange === "7days" ? "next 7 days" : "full 42-day cycle"}!`);
+    const relaxedCount = solverResult?.relaxed.length ?? 0;
+    toast.success(
+      relaxedCount > 0
+        ? `Shuffled ${shuffleRange === "7days" ? "next 7 days" : "42-day cycle"} (${relaxedCount} rule${relaxedCount > 1 ? "s" : ""} relaxed)`
+        : `Successfully shuffled ${shuffleRange === "7days" ? "next 7 days" : "full 42-day cycle"}!`
+    );
   };
 
   const changedDays = useMemo(() => {
@@ -334,7 +341,7 @@ function PlannerPage() {
 
       <Dialog open={isShuffleOpen} onOpenChange={(open) => {
         setIsShuffleOpen(open);
-        if (!open) setPreviewPlan(null);
+        if (!open) setSolverResult(null);
       }}>
         <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
           <DialogHeader>
@@ -343,8 +350,8 @@ function PlannerPage() {
             </DialogTitle>
             <DialogDescription>
               {previewPlan
-                ? "Review the changes before saving. All configured rules are validated and satisfied."
-                : "Randomly shuffle meals for a given range. Active rules are checked and satisfied automatically."}
+                ? "Review the changes before saving."
+                : "Constraint solver generates rule-compliant plans. Active rules are enforced automatically."}
             </DialogDescription>
           </DialogHeader>
 
@@ -375,6 +382,41 @@ function PlannerPage() {
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto space-y-4 my-4 pr-2 max-h-[50vh]">
+              {/* Solver quality feedback */}
+              {solverResult && (
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full font-medium ${
+                    solverResult.score >= 80 ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                    : solverResult.score >= 50 ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                  }`}>
+                    {solverResult.score >= 80 ? "✓" : solverResult.score >= 50 ? "⚠" : "✗"}
+                    {solverResult.score}% quality
+                  </span>
+                  {solverResult.relaxed.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 font-medium">
+                      ⚡ {solverResult.relaxed.length} rule{solverResult.relaxed.length > 1 ? "s" : ""} relaxed
+                    </span>
+                  )}
+                  {solverResult.violations.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 font-medium">
+                      {solverResult.violations.length} violation{solverResult.violations.length > 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+              )}
+              {/* Relaxation details */}
+              {solverResult && solverResult.relaxed.length > 0 && (
+                <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 rounded-lg p-2.5 space-y-1">
+                  <div className="font-semibold">Relaxed rules (couldn't satisfy all constraints):</div>
+                  <ul className="list-disc list-inside">
+                    {solverResult.relaxed.map((id) => {
+                      const rule = customRules.find((r) => r.id === id);
+                      return <li key={id}>{rule?.label ?? id}</li>;
+                    })}
+                  </ul>
+                </div>
+              )}
               {changedDays.map(({ idx, original, shuffled }) => {
                 const bChanged = original.breakfast !== shuffled.breakfast;
                 const lChanged = original.lunch !== shuffled.lunch;
@@ -458,7 +500,7 @@ function PlannerPage() {
           <DialogFooter className="border-t pt-4">
             {previewPlan ? (
               <div className="flex w-full justify-between items-center gap-2 flex-wrap">
-                <Button variant="outline" onClick={() => setPreviewPlan(null)}>
+                <Button variant="outline" onClick={() => setSolverResult(null)}>
                   Back
                 </Button>
                 <div className="flex gap-2">

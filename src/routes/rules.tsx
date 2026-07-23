@@ -9,10 +9,12 @@ import { Pencil, Trash2 } from "lucide-react";
 import {
   RULE_FIELD_OPTIONS,
   useCustomRules,
+  countMatchingDishes,
   type CustomRule,
   type RuleKind,
   type RuleScope,
 } from "@/lib/custom-rules";
+import { DISHES } from "@/lib/dishes";
 
 export const Route = createFileRoute("/rules")({
   head: () => ({
@@ -271,6 +273,7 @@ function RuleRow({
             {bits.map((b, i) => (
               <span key={i} className="rounded-full border border-border px-2 py-0.5 text-muted-foreground">{b}</span>
             ))}
+            <MatchCount rule={rule} />
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
@@ -286,6 +289,26 @@ function RuleRow({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/** ponytail: live dish-match indicator. Tells users when rules are vacuous or too tight. */
+function MatchCount({ rule }: { rule: CustomRule }) {
+  // Only meaningful for rules that filter on dish properties
+  if (rule.kind === "no-repeat" || rule.kind === "lighter-dinner") return null;
+
+  const count = countMatchingDishes(rule.match, rule.scope, DISHES);
+  const color =
+    count === 0
+      ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+      : count <= 5
+        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+        : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
+
+  return (
+    <span className={`rounded-full px-2 py-0.5 font-medium ${color}`}>
+      {count === 0 ? "0 dishes — no effect" : `${count} dish${count > 1 ? "es" : ""}`}
+    </span>
   );
 }
 
