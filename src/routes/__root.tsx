@@ -112,7 +112,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "42-day Indian vegetarian meal plan with macros, swaps and grocery aggregation." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       { rel: "manifest", href: "/manifest.webmanifest" },
@@ -120,8 +119,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-      { rel: "apple-touch-icon", href: "/favicon.ico" },
+      { rel: "icon", href: "/logo.svg", type: "image/svg+xml" },
+      { rel: "alternate icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "apple-touch-icon", href: "/icon-192.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -451,8 +451,8 @@ function SiteHeader({ onSearchClick }: { onSearchClick: () => void }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto grid grid-cols-[1fr_auto_auto] md:grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-3">
-        <Link to="/" className="flex min-w-0 items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground text-lg">🍛</span>
+        <Link to="/" className="flex min-w-0 items-center gap-2.5">
+          <img src="/logo.svg" alt="Aaj Kya Banaye Logo" className="h-9 w-9 shrink-0 drop-shadow-sm" />
           <span className="truncate font-display text-xl font-semibold">Aaj Kya Banaye?</span>
         </Link>
 

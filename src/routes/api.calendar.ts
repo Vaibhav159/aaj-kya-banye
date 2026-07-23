@@ -42,7 +42,7 @@ export const Route = createFileRoute("/api/calendar")({
           return new Response(icsString, {
             headers: {
               "Content-Type": "text/calendar; charset=utf-8",
-              "Content-Disposition": `attachment; filename="thali-calendar.ics"`,
+              "Content-Disposition": `attachment; filename="meal-plan-calendar.ics"`,
               "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
             },
           });

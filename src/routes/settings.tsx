@@ -484,12 +484,12 @@ function SettingsPage() {
               onClick={() => {
                 const plan = applyOverrides(overrides);
                 const idx = currentDayIndex(start);
-                downloadIcs("thali-month.ics", buildIcs(plan, idx, 30, new Date(), {
+                downloadIcs("meal-plan-month.ics", buildIcs(plan, idx, 30, new Date(), {
                   breakfast: form.breakfastTime,
                   lunch: form.lunchTime,
                   dinner: form.dinnerTime,
                 }));
-                toast.success("Downloaded thali-month.ics");
+                toast.success("Downloaded meal-plan-month.ics");
               }}
             >
               Download .ics
@@ -553,13 +553,13 @@ function SettingsPage() {
                 </span>
               </div>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Install Thali on your mobile home screen or desktop to use it like a native app, complete with instant loading and offline supermarket access.
+                Install Aaj Kya Banaye? on your mobile home screen or desktop to use it like a native app, complete with instant loading and offline access.
               </p>
             </div>
             <Button
               variant="default"
               onClick={() => {
-                toast.success("To install Thali, tap Share or 'Add to Home Screen' in your browser menu!");
+                toast.success("To install the app, tap Share or 'Add to Home Screen' in your browser menu!");
               }}
             >
               Install App Shortcut

@@ -168,8 +168,8 @@ function PlannerPage() {
   };
 
   const onIcs = () => {
-    downloadIcs("thali-week.ics", buildIcs(plan, dayIdx, 7));
-    toast.success("Downloaded thali-week.ics — import into your calendar");
+    downloadIcs("meal-plan-week.ics", buildIcs(plan, dayIdx, 7));
+    toast.success("Downloaded meal-plan-week.ics — import into your calendar");
   };
 
   const handleDragStart = (
