@@ -640,7 +640,7 @@ function RecentStrip({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="font-display text-2xl">Last 7 days</CardTitle>
-        <Link to="/history" className="text-sm text-primary hover:underline">See history →</Link>
+        <Link to="/history" className="text-sm font-medium text-primary hover:underline">See history →</Link>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-7 gap-1.5">
