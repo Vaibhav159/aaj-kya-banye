@@ -89,14 +89,27 @@ function RuleRow({
   const [kind, setKind] = useState<RuleKind>(rule.kind);
   const [scope, setScope] = useState<RuleScope>(rule.scope);
 
-  const initialField = Object.keys(rule.match).find(
-    (k) => k !== "frequencyLimit"
-  ) as "cuisine" | "cookingType" | "equipment" | "tag" | "maxPrepMinutes" | "maxSpice" | undefined;
+  const getInitialField = () => {
+    if (rule.kind === "no-repeat") return "minDaysBetweenRepeat";
+    if (rule.kind === "lighter-dinner") return "maxKcalDifference";
+    if (rule.match.minProtein !== undefined) return "minProtein";
+    if (rule.match.maxCarbs !== undefined) return "maxCarbs";
+    if (rule.match.maxKcal !== undefined) return "maxKcal";
+    if (rule.match.tags !== undefined) return "tags";
+    if (rule.match.minDaysBetweenRepeat !== undefined) return "minDaysBetweenRepeat";
+    if (rule.match.maxKcalDifference !== undefined) return "maxKcalDifference";
 
-  const [field, setField] = useState<"cuisine" | "cookingType" | "equipment" | "tag" | "maxPrepMinutes" | "maxSpice">(initialField ?? "cookingType");
-  const [value, setValue] = useState<string>(
-    initialField ? String(rule.match[initialField]) : "fried"
-  );
+    return (Object.keys(rule.match).find(
+      (k) => k !== "frequencyLimit"
+    ) as any) || "cookingType";
+  };
+
+  const [field, setField] = useState<string>(getInitialField());
+  const [value, setValue] = useState<string>(() => {
+    const f = getInitialField();
+    if (f === "tags") return (rule.match.tags ?? []).join(",");
+    return String(rule.match[f as keyof typeof rule.match] ?? "fried");
+  });
   const [freqLimit, setFreqLimit] = useState(
     String(rule.match.frequencyLimit ?? 2)
   );
@@ -107,12 +120,21 @@ function RuleRow({
     if (kind === "min-frequency" || kind === "max-frequency") {
       match.frequencyLimit = Number(freqLimit);
     }
-    if (field === "maxPrepMinutes") match.maxPrepMinutes = Number(value);
-    else if (field === "maxSpice") match.maxSpice = Number(value) as 0 | 1 | 2 | 3;
-    else if (field === "cuisine") match.cuisine = value as never;
-    else if (field === "cookingType") match.cookingType = value as never;
-    else if (field === "equipment") match.equipment = value as never;
-    else if (field === "tag") match.tag = value as never;
+
+    const currentField = kind === "no-repeat" ? "minDaysBetweenRepeat" : kind === "lighter-dinner" ? "maxKcalDifference" : field;
+
+    if (currentField === "maxPrepMinutes") match.maxPrepMinutes = Number(value);
+    else if (currentField === "maxSpice") match.maxSpice = Number(value) as 0 | 1 | 2 | 3;
+    else if (currentField === "cuisine") match.cuisine = value as never;
+    else if (currentField === "cookingType") match.cookingType = value as never;
+    else if (currentField === "equipment") match.equipment = value as never;
+    else if (currentField === "tag") match.tag = value as never;
+    else if (currentField === "tags") match.tags = value.split(",").map(s => s.trim()) as never;
+    else if (currentField === "minProtein") match.minProtein = Number(value);
+    else if (currentField === "maxCarbs") match.maxCarbs = Number(value);
+    else if (currentField === "maxKcal") match.maxKcal = Number(value);
+    else if (currentField === "minDaysBetweenRepeat") match.minDaysBetweenRepeat = Number(value);
+    else if (currentField === "maxKcalDifference") match.maxKcalDifference = Number(value);
 
     onUpdate({ label: label.trim(), kind, scope, match });
     setIsEditing(false);
@@ -123,8 +145,9 @@ function RuleRow({
     setLabel(rule.label);
     setKind(rule.kind);
     setScope(rule.scope);
-    setField(initialField ?? "cookingType");
-    setValue(initialField ? String(rule.match[initialField]) : "fried");
+    const f = getInitialField();
+    setField(f);
+    setValue(f === "tags" ? (rule.match.tags ?? []).join(",") : String(rule.match[f as keyof typeof rule.match] ?? "fried"));
     setFreqLimit(String(rule.match.frequencyLimit ?? 2));
     setIsEditing(false);
   };
@@ -135,15 +158,26 @@ function RuleRow({
     require: "bg-success/15 text-success",
     "min-frequency": "bg-warning/15 text-foreground/80 dark:text-warning",
     "max-frequency": "bg-warning/15 text-foreground/80 dark:text-warning",
+    "no-repeat": "bg-info/15 text-foreground/80 dark:text-info bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400",
+    "lighter-dinner": "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400",
   };
 
   if (isEditing) {
-    const options: string[] =
-      field === "maxPrepMinutes"
-        ? ["10", "15", "20", "30", "45"]
-        : field === "maxSpice"
-          ? ["0", "1", "2", "3"]
-          : (RULE_FIELD_OPTIONS[field] as string[]);
+    const currentField = kind === "no-repeat" ? "minDaysBetweenRepeat" : kind === "lighter-dinner" ? "maxKcalDifference" : field;
+
+    const getOptions = () => {
+      if (currentField === "maxPrepMinutes") return ["10", "15", "20", "30", "45", "60"];
+      if (currentField === "maxSpice") return ["0", "1", "2", "3"];
+      if (currentField === "minProtein") return ["10", "15", "20", "25", "30", "35", "40"];
+      if (currentField === "maxCarbs") return ["30", "40", "50", "60", "70", "80", "100"];
+      if (currentField === "maxKcal") return ["300", "400", "450", "500", "600", "700", "800"];
+      if (currentField === "minDaysBetweenRepeat") return ["1", "2", "3", "4", "5", "6", "7"];
+      if (currentField === "maxKcalDifference") return ["-100", "-50", "0", "50", "100", "150", "200"];
+      if (currentField === "tags") return ["dal,legume", "sweet", "light", "pizza", "paratha", "fried-breakfast", "leafy"];
+      return (RULE_FIELD_OPTIONS[currentField as keyof typeof RULE_FIELD_OPTIONS] || []) as string[];
+    };
+
+    const isFixedField = kind === "no-repeat" || kind === "lighter-dinner";
 
     return (
       <Card className="border border-primary/40 bg-card/60">
@@ -153,25 +187,45 @@ function RuleRow({
             <Input value={label} onChange={(e) => setLabel(e.target.value)} />
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Sel label="Kind" value={kind} onChange={(v) => setKind(v as RuleKind)} options={["avoid", "prefer", "require", "min-frequency", "max-frequency"]} />
+            <Sel label="Kind" value={kind} onChange={(v) => {
+              const nextKind = v as RuleKind;
+              setKind(nextKind);
+              if (nextKind === "no-repeat") {
+                setValue("3");
+              } else if (nextKind === "lighter-dinner") {
+                setValue("0");
+              }
+            }} options={["avoid", "prefer", "require", "min-frequency", "max-frequency", "no-repeat", "lighter-dinner"]} />
             <Sel label="Applies to" value={scope} onChange={(v) => setScope(v as RuleScope)} options={["any", "breakfast", "lunch", "dinner"]} />
-            <Sel
-              label="Field"
-              value={field}
-              onChange={(v) => {
-                const f = v as typeof field;
-                setField(f);
-                setValue(
-                  f === "maxPrepMinutes" ? "20" : f === "maxSpice" ? "1" : (RULE_FIELD_OPTIONS[f as "cuisine"] as string[])[0],
-                );
-              }}
-              options={["cuisine", "cookingType", "equipment", "tag", "maxPrepMinutes", "maxSpice"]}
-            />
+            {!isFixedField ? (
+              <Sel
+                label="Field"
+                value={field}
+                onChange={(v) => {
+                  setField(v);
+                  if (v === "maxPrepMinutes") setValue("20");
+                  else if (v === "maxSpice") setValue("1");
+                  else if (v === "minProtein") setValue("20");
+                  else if (v === "maxCarbs") setValue("50");
+                  else if (v === "maxKcal") setValue("500");
+                  else if (v === "tags") setValue("dal,legume");
+                  else setValue((RULE_FIELD_OPTIONS[v as "cuisine"] as string[])[0]);
+                }}
+                options={["cuisine", "cookingType", "equipment", "tag", "tags", "maxPrepMinutes", "maxSpice", "minProtein", "maxCarbs", "maxKcal"]}
+              />
+            ) : (
+              <div className="space-y-1.5 opacity-50">
+                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Field</Label>
+                <div className="h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm capitalize">
+                  {currentField.replace(/([A-Z])/g, " $1")}
+                </div>
+              </div>
+            )}
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-xs uppercase tracking-wide text-muted-foreground">Value</Label>
-              <Sel label="" value={value} onChange={setValue} options={options} />
+              <Sel label="" value={value} onChange={setValue} options={getOptions()} />
             </div>
             {(kind === "min-frequency" || kind === "max-frequency") && (
               <div className="space-y-1.5">
@@ -195,8 +249,14 @@ function RuleRow({
     m.cookingType,
     m.equipment && `needs ${m.equipment}`,
     m.tag && `tag: ${m.tag}`,
+    m.tags && `tags: ${m.tags.join(" or ")}`,
     m.maxPrepMinutes && `≤ ${m.maxPrepMinutes} min`,
     m.maxSpice !== undefined && `spice ≤ ${m.maxSpice}`,
+    m.minProtein !== undefined && `protein ≥ ${m.minProtein}g`,
+    m.maxCarbs !== undefined && `carbs ≤ ${m.maxCarbs}g`,
+    m.maxKcal !== undefined && `kcal ≤ ${m.maxKcal}`,
+    m.minDaysBetweenRepeat !== undefined && `${m.minDaysBetweenRepeat} days min`,
+    m.maxKcalDifference !== undefined && `diff ≤ ${m.maxKcalDifference} kcal`,
     m.frequencyLimit !== undefined && `limit: ${m.frequencyLimit}×/week`,
   ].filter(Boolean);
 
@@ -233,7 +293,7 @@ function RuleForm({ onAdd }: { onAdd: (r: Omit<CustomRule, "id">) => void }) {
   const [label, setLabel] = useState("");
   const [kind, setKind] = useState<RuleKind>("avoid");
   const [scope, setScope] = useState<RuleScope>("any");
-  const [field, setField] = useState<"cuisine" | "cookingType" | "equipment" | "tag" | "maxPrepMinutes" | "maxSpice">("cookingType");
+  const [field, setField] = useState<string>("cookingType");
   const [value, setValue] = useState<string>("fried");
   const [freqLimit, setFreqLimit] = useState("2");
 
@@ -243,21 +303,40 @@ function RuleForm({ onAdd }: { onAdd: (r: Omit<CustomRule, "id">) => void }) {
     if (kind === "min-frequency" || kind === "max-frequency") {
       match.frequencyLimit = Number(freqLimit);
     }
-    if (field === "maxPrepMinutes") match.maxPrepMinutes = Number(value);
-    else if (field === "maxSpice") match.maxSpice = Number(value) as 0 | 1 | 2 | 3;
-    else if (field === "cuisine") match.cuisine = value as never;
-    else if (field === "cookingType") match.cookingType = value as never;
-    else if (field === "equipment") match.equipment = value as never;
-    else if (field === "tag") match.tag = value as never;
+
+    const currentField = kind === "no-repeat" ? "minDaysBetweenRepeat" : kind === "lighter-dinner" ? "maxKcalDifference" : field;
+
+    if (currentField === "maxPrepMinutes") match.maxPrepMinutes = Number(value);
+    else if (currentField === "maxSpice") match.maxSpice = Number(value) as 0 | 1 | 2 | 3;
+    else if (currentField === "cuisine") match.cuisine = value as never;
+    else if (currentField === "cookingType") match.cookingType = value as never;
+    else if (currentField === "equipment") match.equipment = value as never;
+    else if (currentField === "tag") match.tag = value as never;
+    else if (currentField === "tags") match.tags = value.split(",").map(s => s.trim()) as never;
+    else if (currentField === "minProtein") match.minProtein = Number(value);
+    else if (currentField === "maxCarbs") match.maxCarbs = Number(value);
+    else if (currentField === "maxKcal") match.maxKcal = Number(value);
+    else if (currentField === "minDaysBetweenRepeat") match.minDaysBetweenRepeat = Number(value);
+    else if (currentField === "maxKcalDifference") match.maxKcalDifference = Number(value);
+
     onAdd({ label: label.trim(), kind, scope, match, enabled: true });
   };
 
-  const options: string[] =
-    field === "maxPrepMinutes"
-      ? ["10", "15", "20", "30", "45"]
-      : field === "maxSpice"
-        ? ["0", "1", "2", "3"]
-        : (RULE_FIELD_OPTIONS[field] as string[]);
+  const currentField = kind === "no-repeat" ? "minDaysBetweenRepeat" : kind === "lighter-dinner" ? "maxKcalDifference" : field;
+
+  const getOptions = () => {
+    if (currentField === "maxPrepMinutes") return ["10", "15", "20", "30", "45", "60"];
+    if (currentField === "maxSpice") return ["0", "1", "2", "3"];
+    if (currentField === "minProtein") return ["10", "15", "20", "25", "30", "35", "40"];
+    if (currentField === "maxCarbs") return ["30", "40", "50", "60", "70", "80", "100"];
+    if (currentField === "maxKcal") return ["300", "400", "450", "500", "600", "700", "800"];
+    if (currentField === "minDaysBetweenRepeat") return ["1", "2", "3", "4", "5", "6", "7"];
+    if (currentField === "maxKcalDifference") return ["-100", "-50", "0", "50", "100", "150", "200"];
+    if (currentField === "tags") return ["dal,legume", "sweet", "light", "pizza", "paratha", "fried-breakfast", "leafy"];
+    return (RULE_FIELD_OPTIONS[currentField as keyof typeof RULE_FIELD_OPTIONS] || []) as string[];
+  };
+
+  const isFixedField = kind === "no-repeat" || kind === "lighter-dinner";
 
   return (
     <Card>
@@ -268,25 +347,45 @@ function RuleForm({ onAdd }: { onAdd: (r: Omit<CustomRule, "id">) => void }) {
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="e.g. Airfryer-only dinners" />
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
-          <Sel label="Kind" value={kind} onChange={(v) => setKind(v as RuleKind)} options={["avoid", "prefer", "require", "min-frequency", "max-frequency"]} />
+          <Sel label="Kind" value={kind} onChange={(v) => {
+            const nextKind = v as RuleKind;
+            setKind(nextKind);
+            if (nextKind === "no-repeat") {
+              setValue("3");
+            } else if (nextKind === "lighter-dinner") {
+              setValue("0");
+            }
+          }} options={["avoid", "prefer", "require", "min-frequency", "max-frequency", "no-repeat", "lighter-dinner"]} />
           <Sel label="Applies to" value={scope} onChange={(v) => setScope(v as RuleScope)} options={["any", "breakfast", "lunch", "dinner"]} />
-          <Sel
-            label="Field"
-            value={field}
-            onChange={(v) => {
-              const f = v as typeof field;
-              setField(f);
-              setValue(
-                f === "maxPrepMinutes" ? "20" : f === "maxSpice" ? "1" : (RULE_FIELD_OPTIONS[f as "cuisine"] as string[])[0],
-              );
-            }}
-            options={["cuisine", "cookingType", "equipment", "tag", "maxPrepMinutes", "maxSpice"]}
-          />
+          {!isFixedField ? (
+            <Sel
+              label="Field"
+              value={field}
+              onChange={(v) => {
+                setField(v);
+                if (v === "maxPrepMinutes") setValue("20");
+                else if (v === "maxSpice") setValue("1");
+                else if (v === "minProtein") setValue("20");
+                else if (v === "maxCarbs") setValue("50");
+                else if (v === "maxKcal") setValue("500");
+                else if (v === "tags") setValue("dal,legume");
+                else setValue((RULE_FIELD_OPTIONS[v as "cuisine"] as string[])[0]);
+              }}
+              options={["cuisine", "cookingType", "equipment", "tag", "tags", "maxPrepMinutes", "maxSpice", "minProtein", "maxCarbs", "maxKcal"]}
+            />
+          ) : (
+            <div className="space-y-1.5 opacity-50">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Field</Label>
+              <div className="h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm capitalize">
+                {currentField.replace(/([A-Z])/g, " $1")}
+              </div>
+            </div>
+          )}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-xs uppercase tracking-wide text-muted-foreground">Value</Label>
-            <Sel label="" value={value} onChange={setValue} options={options} />
+            <Sel label="" value={value} onChange={setValue} options={getOptions()} />
           </div>
           {(kind === "min-frequency" || kind === "max-frequency") && (
             <div className="space-y-1.5">

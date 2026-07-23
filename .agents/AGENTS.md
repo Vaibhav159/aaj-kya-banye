@@ -116,6 +116,7 @@ src/
 │   ├── store.ts         # State hooks: profile, cycle, overrides, meal log, custom dishes
 │   ├── dishes.ts        # Dish database (73 dishes), types, helpers
 │   ├── plan.ts          # 42-day plan generation algorithm
+│   ├── plan-shuffler.ts # Shuffle & rotate plan algorithm
 │   ├── rules.ts         # 8 built-in nutrition rules + rule checker
 │   ├── custom-rules.ts  # User-configurable rules engine
 │   ├── grocery.ts       # Ingredient aggregation by category
@@ -222,19 +223,23 @@ Grocery aggregation merges duplicates, normalizes units (g/ml/pc), and groups by
 
 # 📏 Rules Engine
 
-### 8 Built-in Rules
-1. Pizza max 1×/week
-2. Paratha only at breakfast/lunch
-3. Fried breakfasts max 2×/week
-4. Dal or legume every day
-5. Leafy greens every day
-6. No repeat within 3 days
-7. Dinner lighter than lunch
-8. Sweets max 2×/week
+### Prebuilt Rules (Flexible Custom Rules)
+All rules (previously built-in rules) are now custom rules prebuilt/pre-populated by default:
+1. Pizza max 1×/week (max frequency)
+2. Paratha only at breakfast/lunch (avoid slot)
+3. Fried breakfasts max 2×/week (max frequency)
+4. Dal or legume every day (require)
+5. Leafy greens every day (require)
+6. No repeat within 3 days (no-repeat interval)
+7. Dinner lighter than lunch (lighter-dinner comparison)
+8. Sweets max 2×/week (max frequency)
+9. Protein Paglu (minimum protein threshold)
+10. Light Dinner (maximum calorie threshold)
+11. Low Carb (maximum carb threshold)
 
 ### Custom Rules (`custom-rules.ts`)
-Users can create avoid/prefer/require rules scoped to any slot, matching on:
-cuisine, cookingType, equipment, tag, maxPrepMinutes, maxSpice
+Users can create avoid/prefer/require/frequency/no-repeat/lighter-dinner rules scoped to any slot, matching on:
+cuisine, cookingType, equipment, tag, tags, maxPrepMinutes, maxSpice, minProtein, maxCarbs, maxKcal, minDaysBetweenRepeat, maxKcalDifference
 
 ---
 

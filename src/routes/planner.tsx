@@ -1,13 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DISHES_BY_ID } from "@/lib/dishes";
 import { applyOverrides, currentDayIndex, useCycleStart, useOverrides } from "@/lib/store";
+import { type DayPlan } from "@/lib/plan";
 import { shareOrCopy, weekSummary } from "@/lib/share";
 import { buildIcs, downloadIcs } from "@/lib/ical";
 import { drawWeeklyPlan } from "@/lib/share-image";
+import { generateShuffledPlan } from "@/lib/plan-shuffler";
+import { useCustomRules } from "@/lib/custom-rules";
+import { Shuffle, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/planner")({
   head: () => ({
@@ -27,9 +32,61 @@ function dayKcal(dayIds: [string, string, string]): number {
 
 function PlannerPage() {
   const { start } = useCycleStart();
-  const { overrides, setOne } = useOverrides();
+  const { overrides, setOne, setMany } = useOverrides();
+  const { rules: customRules } = useCustomRules();
   const dayIdx = currentDayIndex(start);
   const plan = useMemo(() => applyOverrides(overrides), [overrides]);
+
+  const [isShuffleOpen, setIsShuffleOpen] = useState(false);
+  const [previewPlan, setPreviewPlan] = useState<DayPlan[] | null>(null);
+  const [shuffleRange, setShuffleRange] = useState<"7days" | "42days">("7days");
+
+  const startShuffle = (range: "7days" | "42days") => {
+    setShuffleRange(range);
+    const shuffled = generateShuffledPlan(plan, range, dayIdx, customRules);
+    setPreviewPlan(shuffled);
+  };
+
+  const applyPreview = () => {
+    if (!previewPlan) return;
+    const nextOverrides: Record<string, string> = { ...overrides };
+    const targetIndices = shuffleRange === "7days"
+      ? Array.from({ length: 7 }, (_, i) => (dayIdx + i) % 42)
+      : Array.from({ length: 42 }, (_, i) => i);
+      
+    for (const idx of targetIndices) {
+      const shuffled = previewPlan[idx];
+      nextOverrides[`d${idx}-breakfast`] = shuffled.breakfast;
+      nextOverrides[`d${idx}-lunch`] = shuffled.lunch;
+      nextOverrides[`d${idx}-dinner`] = shuffled.dinner;
+    }
+    
+    setMany(nextOverrides);
+    setPreviewPlan(null);
+    setIsShuffleOpen(false);
+    toast.success(`Successfully shuffled ${shuffleRange === "7days" ? "next 7 days" : "full 42-day cycle"}!`);
+  };
+
+  const changedDays = useMemo(() => {
+    if (!previewPlan) return [];
+    const list = [];
+    const targetIndices = shuffleRange === "7days"
+      ? Array.from({ length: 7 }, (_, i) => (dayIdx + i) % 42)
+      : Array.from({ length: 42 }, (_, i) => i);
+
+    for (const idx of targetIndices) {
+      const original = plan[idx];
+      const shuffled = previewPlan[idx];
+      if (
+        original.breakfast !== shuffled.breakfast ||
+        original.lunch !== shuffled.lunch ||
+        original.dinner !== shuffled.dinner
+      ) {
+        list.push({ idx, original, shuffled });
+      }
+    }
+    return list;
+  }, [previewPlan, plan, shuffleRange, dayIdx]);
 
   const week = Array.from({ length: 7 }, (_, i) => plan[(dayIdx + i) % 42]);
   const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -160,6 +217,9 @@ function PlannerPage() {
           <h1 className="font-display text-4xl font-semibold">Next 7 days</h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button onClick={() => setIsShuffleOpen(true)} className="flex items-center gap-1.5 bg-primary hover:bg-primary/95 cursor-pointer">
+            <Shuffle className="h-4 w-4" /> Shuffle / Rotate
+          </Button>
           <Button variant="outline" onClick={onShare}>Share summary</Button>
           <Button variant="outline" onClick={onShareLink}>Share plan link</Button>
           <Button variant="outline" onClick={onShareImage}>Share image</Button>
@@ -271,6 +331,153 @@ function PlannerPage() {
         </CardContent>
       </Card>
       <canvas ref={canvasRef} className="hidden" />
+
+      <Dialog open={isShuffleOpen} onOpenChange={(open) => {
+        setIsShuffleOpen(open);
+        if (!open) setPreviewPlan(null);
+      }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">
+              {previewPlan ? "Preview Shuffled Plan" : "Shuffle & Rotate"}
+            </DialogTitle>
+            <DialogDescription>
+              {previewPlan
+                ? "Review the changes before saving. All configured rules are validated and satisfied."
+                : "Randomly shuffle meals for a given range. Active rules are checked and satisfied automatically."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {previewPlan === null ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-6">
+              <Button
+                variant="outline"
+                onClick={() => startShuffle("7days")}
+                className="h-32 flex flex-col justify-center gap-2 text-lg font-semibold hover:border-primary/50 group cursor-pointer"
+              >
+                <Shuffle className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+                <span>Shuffle Next 7 Days</span>
+                <span className="text-xs font-normal text-muted-foreground max-w-[200px] text-center">
+                  Only shuffle meals for the upcoming week cycle
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => startShuffle("42days")}
+                className="h-32 flex flex-col justify-center gap-2 text-lg font-semibold hover:border-primary/50 group cursor-pointer"
+              >
+                <Shuffle className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+                <span>Shuffle Full 42 Days</span>
+                <span className="text-xs font-normal text-muted-foreground max-w-[200px] text-center">
+                  Re-rotate and shuffle all meals in the 42-day rotation
+                </span>
+              </Button>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto space-y-4 my-4 pr-2 max-h-[50vh]">
+              {changedDays.map(({ idx, original, shuffled }) => {
+                const bChanged = original.breakfast !== shuffled.breakfast;
+                const lChanged = original.lunch !== shuffled.lunch;
+                const dChanged = original.dinner !== shuffled.dinner;
+
+                return (
+                  <div key={idx} className="border border-border/60 rounded-lg p-3 bg-secondary/15 space-y-2">
+                    <div className="font-semibold text-sm text-foreground">Day {idx + 1}</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                      {/* Breakfast */}
+                      <div className="space-y-0.5">
+                        <div className="text-muted-foreground font-medium uppercase tracking-wide text-[9px]">Breakfast</div>
+                        {bChanged ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="line-through text-muted-foreground/80">
+                              {DISHES_BY_ID[original.breakfast]?.emoji} {DISHES_BY_ID[original.breakfast]?.name}
+                            </span>
+                            <span className="text-success font-semibold flex items-center gap-1">
+                              <ArrowRight className="h-3 w-3 inline shrink-0" />
+                              {DISHES_BY_ID[shuffled.breakfast]?.emoji} {DISHES_BY_ID[shuffled.breakfast]?.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/80">
+                            {DISHES_BY_ID[original.breakfast]?.emoji} {DISHES_BY_ID[original.breakfast]?.name}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Lunch */}
+                      <div className="space-y-0.5">
+                        <div className="text-muted-foreground font-medium uppercase tracking-wide text-[9px]">Lunch</div>
+                        {lChanged ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="line-through text-muted-foreground/80">
+                              {DISHES_BY_ID[original.lunch]?.emoji} {DISHES_BY_ID[original.lunch]?.name}
+                            </span>
+                            <span className="text-success font-semibold flex items-center gap-1">
+                              <ArrowRight className="h-3 w-3 inline shrink-0" />
+                              {DISHES_BY_ID[shuffled.lunch]?.emoji} {DISHES_BY_ID[shuffled.lunch]?.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/80">
+                            {DISHES_BY_ID[original.lunch]?.emoji} {DISHES_BY_ID[original.lunch]?.name}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Dinner */}
+                      <div className="space-y-0.5">
+                        <div className="text-muted-foreground font-medium uppercase tracking-wide text-[9px]">Dinner</div>
+                        {dChanged ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="line-through text-muted-foreground/80">
+                              {DISHES_BY_ID[original.dinner]?.emoji} {DISHES_BY_ID[original.dinner]?.name}
+                            </span>
+                            <span className="text-success font-semibold flex items-center gap-1">
+                              <ArrowRight className="h-3 w-3 inline shrink-0" />
+                              {DISHES_BY_ID[shuffled.dinner]?.emoji} {DISHES_BY_ID[shuffled.dinner]?.name}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground/80">
+                            {DISHES_BY_ID[original.dinner]?.emoji} {DISHES_BY_ID[original.dinner]?.name}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {changedDays.length === 0 && (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  No changes suggested. Click below to shuffle again.
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="border-t pt-4">
+            {previewPlan ? (
+              <div className="flex w-full justify-between items-center gap-2 flex-wrap">
+                <Button variant="outline" onClick={() => setPreviewPlan(null)}>
+                  Back
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => startShuffle(shuffleRange)} className="cursor-pointer">
+                    Shuffle Again
+                  </Button>
+                  <Button onClick={applyPreview} className="cursor-pointer">
+                    Apply Changes
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="outline" onClick={() => setIsShuffleOpen(false)}>
+                Cancel
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
