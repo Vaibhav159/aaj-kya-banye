@@ -52,6 +52,7 @@ function checkHardCrossDay(
   dishId: string,
   hardRules: CustomRule[],
   targetIndices: number[],
+  pool: Record<Slot, Dish[]>,
 ): boolean {
   const targetSet = new Set(targetIndices);
 
@@ -111,6 +112,29 @@ function checkHardCrossDay(
         }
       }
       if (count > limit) return false;
+    }
+
+    // Daily require rules (scope === "any"): at least one meal in the day must match
+    if (r.kind === "require" && r.scope === "any") {
+      const daySlots = [grid[dayIdx][0], grid[dayIdx][1], grid[dayIdx][2]];
+      daySlots[slotIdx] = dishId;
+      const hasMatch = daySlots.some((id) => {
+        const d = id ? DISHES_BY_ID[id] : null;
+        return d ? dishMatches(d, r.match) : false;
+      });
+      if (!hasMatch) {
+        let canMatchLater = false;
+        for (let s = 0; s < 3; s++) {
+          if (daySlots[s] === null) {
+            const slotName = SLOTS[s];
+            if (pool[slotName].some((d) => dishMatches(d, r.match))) {
+              canMatchLater = true;
+              break;
+            }
+          }
+        }
+        if (!canMatchLater) return false;
+      }
     }
 
     // Lighter dinner
@@ -184,8 +208,27 @@ function solve(
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
+    // Prioritize candidates matching unsatisfied daily require rules
+    const dayAssigned = [grid[cell.dayIdx][0], grid[cell.dayIdx][1], grid[cell.dayIdx][2]];
+    const unsatisfiedRequireRules = hardRules.filter((r) => {
+      if (r.kind !== "require" || r.scope !== "any") return false;
+      return !dayAssigned.some((id) => id && DISHES_BY_ID[id] && dishMatches(DISHES_BY_ID[id]!, r.match));
+    });
+
+    if (unsatisfiedRequireRules.length > 0) {
+      shuffled.sort((a, b) => {
+        const dishA = DISHES_BY_ID[a];
+        const dishB = DISHES_BY_ID[b];
+        const aMatches = dishA ? unsatisfiedRequireRules.some((r) => dishMatches(dishA, r.match)) : false;
+        const bMatches = dishB ? unsatisfiedRequireRules.some((r) => dishMatches(dishB, r.match)) : false;
+        if (aMatches && !bMatches) return -1;
+        if (!aMatches && bMatches) return 1;
+        return 0;
+      });
+    }
+
     for (const dishId of shuffled) {
-      if (checkHardCrossDay(grid, cell.dayIdx, slotIdx, dishId, hardRules, targetIndices)) {
+      if (checkHardCrossDay(grid, cell.dayIdx, slotIdx, dishId, hardRules, targetIndices, pool)) {
         grid[cell.dayIdx][slotIdx] = dishId;
         if (bt(idx + 1)) return true;
         grid[cell.dayIdx][slotIdx] = null;

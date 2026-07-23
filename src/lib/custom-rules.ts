@@ -169,6 +169,7 @@ export function dishMatches(dish: Dish, m: RuleMatch): boolean {
 export function passesRules(dish: Dish, slot: Slot, rules: CustomRule[]): boolean {
   for (const r of rules) {
     if (!r.enabled) continue;
+    if (r.kind === "require" && r.scope === "any") continue;
     if (r.scope !== "any" && r.scope !== slot) continue;
     const matches = dishMatches(dish, r.match);
     if (r.kind === "require" && !matches) return false;
@@ -206,16 +207,17 @@ export function checkFeasibility(
   const impossible: string[] = [];
   for (const r of rules) {
     if (!r.enabled || r.kind !== "require") continue;
-    const slots: import("./dishes").Slot[] = r.scope === "any"
-      ? ["breakfast", "lunch", "dinner"]
-      : [r.scope];
-    for (const slot of slots) {
+    if (r.scope === "any") {
+      const matching = pool.filter((d) => dishMatches(d, r.match));
+      if (matching.length === 0) {
+        impossible.push(r.id);
+      }
+    } else {
       const matching = pool.filter(
-        (d) => d.slots.includes(slot) && dishMatches(d, r.match),
+        (d) => d.slots.includes(r.scope as import("./dishes").Slot) && dishMatches(d, r.match),
       );
       if (matching.length === 0) {
         impossible.push(r.id);
-        break;
       }
     }
   }

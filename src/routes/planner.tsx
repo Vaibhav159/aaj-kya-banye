@@ -4,17 +4,28 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DISHES_BY_ID } from "@/lib/dishes";
-import { applyOverrides, currentDayIndex, useCycleStart, useOverrides } from "@/lib/store";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DISHES_BY_ID, getDishBase, CUISINE_LABELS, type Dish } from "@/lib/dishes";
+import { applyOverrides, currentDayIndex, useCycleStart, useOverrides, useFavorites } from "@/lib/store";
 import { type DayPlan } from "@/lib/plan";
 import { shareOrCopy, weekSummary } from "@/lib/share";
 import { buildIcs, downloadIcs } from "@/lib/ical";
 import { drawWeeklyPlan } from "@/lib/share-image";
 import { generateSolvedPlan, type SolverResult } from "@/lib/plan-shuffler";
 import { useCustomRules } from "@/lib/custom-rules";
-import { Shuffle, ArrowRight } from "lucide-react";
+import { Shuffle, ArrowRight, Sparkles, Heart, Share2, FileText, Link as LinkIcon, Image as ImageIcon, Calendar } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { DishDetailDialog } from "@/components/dish-detail";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/planner")({
+
   head: () => ({
     meta: [
       { title: "Planner · Aaj Kya Banaye?" },
@@ -157,8 +168,8 @@ function PlannerPage() {
   };
 
   const onIcs = () => {
-    downloadIcs("thali-week.ics", buildIcs(plan, dayIdx, 7));
-    toast.success("Downloaded thali-week.ics — import into your calendar");
+    downloadIcs("meal-plan-week.ics", buildIcs(plan, dayIdx, 7));
+    toast.success("Downloaded meal-plan-week.ics — import into your calendar");
   };
 
   const handleDragStart = (
@@ -216,6 +227,9 @@ function PlannerPage() {
     }
   };
 
+  const [detailDish, setDetailDish] = useState<Dish | null>(null);
+  const { isFavorite } = useFavorites();
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -224,13 +238,40 @@ function PlannerPage() {
           <h1 className="font-display text-4xl font-semibold">Next 7 days</h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setIsShuffleOpen(true)} className="flex items-center gap-1.5 bg-primary hover:bg-primary/95 cursor-pointer">
+          <Button
+            onClick={() => {
+              setIsShuffleOpen(true);
+              startShuffle("7days");
+            }}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white shadow-xs cursor-pointer"
+          >
+            <Sparkles className="h-4 w-4" /> Generate Plan
+          </Button>
+          <Button onClick={() => setIsShuffleOpen(true)} variant="outline" className="flex items-center gap-1.5 cursor-pointer">
             <Shuffle className="h-4 w-4" /> Shuffle / Rotate
           </Button>
-          <Button variant="outline" onClick={onShare}>Share summary</Button>
-          <Button variant="outline" onClick={onShareLink}>Share plan link</Button>
-          <Button variant="outline" onClick={onShareImage}>Share image</Button>
-          <Button variant="outline" onClick={onIcs}>Export .ics</Button>
+          {/* ponytail: consolidated 4 separate share buttons into a single DropdownMenu to declutter the toolbar UI */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-1.5 cursor-pointer">
+                <Share2 className="h-4 w-4" /> Share
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onShare} className="cursor-pointer">
+                <FileText className="h-4 w-4 mr-2" /> Share text summary
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onShareLink} className="cursor-pointer">
+                <LinkIcon className="h-4 w-4 mr-2" /> Share plan link
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onShareImage} className="cursor-pointer">
+                <ImageIcon className="h-4 w-4 mr-2" /> Share plan image
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onIcs} className="cursor-pointer">
+                <Calendar className="h-4 w-4 mr-2" /> Export calendar (.ics)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
@@ -240,16 +281,18 @@ function PlannerPage() {
           const kcal = dayKcal([d.breakfast, d.lunch, d.dinner]);
           return (
             <Card key={i} className={i === 0 ? "border-primary shadow-md" : ""}>
-              <CardContent className="p-4">
+              <CardContent className="p-3">
                 <div className="text-xs uppercase text-muted-foreground">{dayLabels[date.getDay()]}</div>
                 <div className="font-display text-2xl font-semibold">{date.getDate()}</div>
-                <div className="mt-2 text-xs text-muted-foreground">Day {d.day + 1}</div>
-                <div className="mt-2 font-medium text-primary">{kcal} kcal</div>
-                <ul className="mt-3 space-y-1.5 text-xs text-muted-foreground">
+                <div className="mt-1 text-[11px] text-muted-foreground">Day {d.day + 1}</div>
+                <div className="mt-1 font-medium text-primary text-xs">{kcal} kcal</div>
+                <ul className="mt-3 space-y-2 text-xs">
                   {(["breakfast", "lunch", "dinner"] as const).map((slot) => {
                     const dishId = d[slot];
                     const dish = DISHES_BY_ID[dishId];
                     if (!dish) return null;
+                    const base = getDishBase(dish);
+                    const fav = isFavorite(dish.id);
                     return (
                       <li
                         key={slot}
@@ -257,11 +300,22 @@ function PlannerPage() {
                         onDragStart={(e) => handleDragStart(e, d.day, slot, dishId)}
                         onDragOver={handleDragOver}
                         onDrop={(e) => handleDrop(e, d.day, slot)}
-                        className="flex items-center gap-1.5 cursor-grab active:cursor-grabbing hover:bg-secondary/70 rounded p-1 transition-colors border border-transparent hover:border-border select-none"
-                        title="Drag to swap this meal with another slot"
+                        onClick={() => setDetailDish(dish)}
+                        className="group flex flex-col gap-1 cursor-grab active:cursor-grabbing hover:bg-secondary/70 rounded p-1.5 transition-colors border border-transparent hover:border-border select-none"
+                        title="Click to view details, or drag to swap meal"
                       >
-                        <span className="text-sm shrink-0">{dish.emoji}</span>
-                        <span className="truncate font-medium text-foreground/80">{dish.name}</span>
+                        <div className="flex items-center gap-1.5 justify-between">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <span className="text-sm shrink-0">{dish.emoji}</span>
+                            <span className="truncate font-medium text-foreground/90">{dish.name}</span>
+                          </div>
+                          {fav && <Heart className="h-3 w-3 fill-rose-500 text-rose-500 shrink-0" />}
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                          <span className="capitalize text-muted-foreground/80">{slot[0].toUpperCase()}</span>
+                          <span>·</span>
+                          <span className="font-medium text-primary/80">{base}</span>
+                        </div>
                       </li>
                     );
                   })}
@@ -271,6 +325,9 @@ function PlannerPage() {
           );
         })}
       </div>
+
+      <DishDetailDialog dish={detailDish} open={detailDish !== null} onOpenChange={(o) => !o && setDetailDish(null)} />
+
 
       <Card>
         <CardHeader>
@@ -360,22 +417,22 @@ function PlannerPage() {
               <Button
                 variant="outline"
                 onClick={() => startShuffle("7days")}
-                className="h-32 flex flex-col justify-center gap-2 text-lg font-semibold hover:border-primary/50 group cursor-pointer"
+                className="h-32 flex flex-col items-center justify-center p-4 gap-1.5 text-lg font-semibold hover:border-primary/50 group cursor-pointer whitespace-normal"
               >
-                <Shuffle className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+                <Shuffle className="h-6 w-6 text-muted-foreground group-hover:text-primary shrink-0" />
                 <span>Shuffle Next 7 Days</span>
-                <span className="text-xs font-normal text-muted-foreground max-w-[200px] text-center">
+                <span className="text-xs font-normal text-muted-foreground text-center leading-relaxed">
                   Only shuffle meals for the upcoming week cycle
                 </span>
               </Button>
               <Button
                 variant="outline"
                 onClick={() => startShuffle("42days")}
-                className="h-32 flex flex-col justify-center gap-2 text-lg font-semibold hover:border-primary/50 group cursor-pointer"
+                className="h-32 flex flex-col items-center justify-center p-4 gap-1.5 text-lg font-semibold hover:border-primary/50 group cursor-pointer whitespace-normal"
               >
-                <Shuffle className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+                <Shuffle className="h-6 w-6 text-muted-foreground group-hover:text-primary shrink-0" />
                 <span>Shuffle Full 42 Days</span>
-                <span className="text-xs font-normal text-muted-foreground max-w-[200px] text-center">
+                <span className="text-xs font-normal text-muted-foreground text-center leading-relaxed">
                   Re-rotate and shuffle all meals in the 42-day rotation
                 </span>
               </Button>
@@ -385,7 +442,7 @@ function PlannerPage() {
               {/* Solver quality feedback */}
               {solverResult && (
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full font-medium ${
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium ${
                     solverResult.score >= 80 ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                     : solverResult.score >= 50 ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
                     : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
@@ -393,15 +450,59 @@ function PlannerPage() {
                     {solverResult.score >= 80 ? "✓" : solverResult.score >= 50 ? "⚠" : "✗"}
                     {solverResult.score}% quality
                   </span>
+
                   {solverResult.relaxed.length > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 font-medium">
-                      ⚡ {solverResult.relaxed.length} rule{solverResult.relaxed.length > 1 ? "s" : ""} relaxed
-                    </span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 font-medium cursor-pointer hover:bg-amber-200/80 transition-colors border-0 text-xs select-none"
+                        >
+                          ⚡ {solverResult.relaxed.length} rule{solverResult.relaxed.length > 1 ? "s" : ""} relaxed
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent side="bottom" align="start" className="w-80 space-y-2 p-3 text-xs shadow-lg border border-amber-200 dark:border-amber-900/50">
+                        <div className="font-semibold text-amber-700 dark:text-amber-400">
+                          Relaxed Rules ({solverResult.relaxed.length})
+                        </div>
+                        <p className="text-muted-foreground text-[11px]">
+                          These constraints were softened by the solver to find a solution:
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 text-foreground/90 font-medium">
+                          {solverResult.relaxed.map((id) => {
+                            const rule = customRules.find((r) => r.id === id);
+                            return <li key={id}>{rule?.label ?? id}</li>;
+                          })}
+                        </ul>
+                      </PopoverContent>
+                    </Popover>
                   )}
+
                   {solverResult.violations.length > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 font-medium">
-                      {solverResult.violations.length} violation{solverResult.violations.length > 1 ? "s" : ""}
-                    </span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 font-medium cursor-pointer hover:bg-red-200/80 transition-colors border-0 text-xs select-none"
+                        >
+                          {solverResult.violations.length} violation{solverResult.violations.length > 1 ? "s" : ""}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent side="bottom" align="start" className="w-80 space-y-2 p-3 text-xs shadow-lg border border-red-200 dark:border-red-900/50">
+                        <div className="font-semibold text-red-600 dark:text-red-400">
+                          Rule Violations ({solverResult.violations.length})
+                        </div>
+                        <p className="text-muted-foreground text-[11px]">
+                          The plan currently violates the following rules:
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 text-foreground/90 font-medium">
+                          {solverResult.violations.map((id) => {
+                            const rule = customRules.find((r) => r.id === id);
+                            return <li key={id}>{rule?.label ?? id}</li>;
+                          })}
+                        </ul>
+                      </PopoverContent>
+                    </Popover>
                   )}
                 </div>
               )}

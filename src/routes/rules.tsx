@@ -6,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Pencil, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   RULE_FIELD_OPTIONS,
   useCustomRules,
   countMatchingDishes,
+  dishMatches,
   type CustomRule,
   type RuleKind,
   type RuleScope,
@@ -297,7 +299,12 @@ function MatchCount({ rule }: { rule: CustomRule }) {
   // Only meaningful for rules that filter on dish properties
   if (rule.kind === "no-repeat" || rule.kind === "lighter-dinner") return null;
 
-  const count = countMatchingDishes(rule.match, rule.scope, DISHES);
+  const matchingDishes = DISHES.filter((d) => {
+    if (rule.scope !== "any" && !d.slots.includes(rule.scope)) return false;
+    return dishMatches(d, rule.match);
+  });
+
+  const count = matchingDishes.length;
   const color =
     count === 0
       ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
@@ -306,9 +313,41 @@ function MatchCount({ rule }: { rule: CustomRule }) {
         : "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
 
   return (
-    <span className={`rounded-full px-2 py-0.5 font-medium ${color}`}>
-      {count === 0 ? "0 dishes — no effect" : `${count} dish${count > 1 ? "es" : ""}`}
-    </span>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`rounded-full px-2 py-0.5 font-medium border-0 cursor-pointer hover:opacity-80 transition-opacity text-xs select-none ${color}`}
+        >
+          {count === 0 ? "0 dishes — no effect" : `${count} dish${count > 1 ? "es" : ""}`}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent side="bottom" align="start" className="w-72 sm:w-80 p-3 space-y-2 text-xs shadow-lg">
+        <div className="font-semibold text-foreground flex items-center justify-between border-b pb-1.5">
+          <span>Matching Dishes ({count})</span>
+          <span className="text-[10px] text-muted-foreground uppercase">{rule.scope} slot</span>
+        </div>
+        {count === 0 ? (
+          <p className="text-muted-foreground text-xs italic py-1">
+            No dishes in database match this rule filter.
+          </p>
+        ) : (
+          <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
+            {matchingDishes.map((dish) => (
+              <div key={dish.id} className="flex items-center justify-between gap-2 p-1.5 rounded-md hover:bg-secondary/50 transition-colors">
+                <span className="truncate font-medium flex items-center gap-1.5">
+                  <span className="text-sm shrink-0">{dish.emoji}</span>
+                  <span className="truncate">{dish.name}</span>
+                </span>
+                <span className="text-[10px] text-muted-foreground shrink-0 font-mono">
+                  {dish.kcal} kcal
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 
