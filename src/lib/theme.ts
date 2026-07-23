@@ -1,8 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
+import { supabase } from "./supabase";
 
 export type ThemeMode = "system" | "light" | "dark";
 
 export const THEME_KEY = "thali:theme";
+
+export async function syncTheme(mode: ThemeMode) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("profiles").upsert({
+      id: user.id,
+      theme: mode,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Theme sync error:", err);
+  }
+}
 
 export function getStoredTheme(): ThemeMode {
   if (typeof window === "undefined") return "system";
@@ -64,6 +79,7 @@ export function useTheme() {
     }
     applyTheme(nextMode);
     setResolvedTheme(resolveTheme(nextMode));
+    syncTheme(nextMode);
   }, []);
 
   useEffect(() => {

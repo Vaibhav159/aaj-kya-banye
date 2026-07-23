@@ -105,9 +105,11 @@ Keyboard navigation, focus states, semantic HTML, screen reader support, `prefer
 ```text
 src/
 ├── components/
-│   ├── ui/              # shadcn/ui components (do not edit manually)
-│   ├── bottom-nav.tsx   # Mobile bottom navigation
-│   └── dish-detail.tsx  # Dish detail sheet/modal
+│   ├── ui/                    # shadcn/ui components (do not edit manually)
+│   ├── bottom-nav.tsx         # Mobile bottom navigation
+│   ├── dish-detail.tsx        # Dish detail sheet/modal
+│   ├── onboarding-dialog.tsx  # Multi-step onboarding setup wizard
+│   └── search-planner-dialog.tsx # Search-based meal planning modal
 │
 ├── hooks/
 │   └── use-mobile.tsx   # Mobile viewport detection

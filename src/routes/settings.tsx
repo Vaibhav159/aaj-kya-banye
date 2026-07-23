@@ -11,7 +11,8 @@ import { applyOverrides, currentDayIndex, useOverrides } from "@/lib/store";
 import { saveCalendarFeed } from "@/lib/calendar-server";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useTheme } from "@/lib/theme";
-import { Sun, Moon, Monitor } from "lucide-react";
+import { Sun, Moon, Monitor, Sparkles } from "lucide-react";
+import { OnboardingDialog } from "@/components/onboarding-dialog";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -32,6 +33,7 @@ function SettingsPage() {
   const { overrides } = useOverrides();
   const [form, setForm] = useState<Profile>(DEFAULT_PROFILE);
   const [feedId, setFeedId] = useState("");
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   const [user, setUser] = useState<any>(null);
   const [syncLoading, setSyncLoading] = useState(true);
@@ -350,9 +352,18 @@ function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
-      <header>
-        <p className="text-sm uppercase tracking-wide text-muted-foreground">Profile</p>
-        <h1 className="font-display text-4xl font-semibold">Settings</h1>
+      <header className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm uppercase tracking-wide text-muted-foreground">Profile</p>
+          <h1 className="font-display text-4xl font-semibold">Settings</h1>
+        </div>
+        <Button
+          onClick={() => setIsOnboardingOpen(true)}
+          variant="outline"
+          className="gap-1.5 cursor-pointer text-xs"
+        >
+          <Sparkles className="h-4 w-4 text-amber-500" /> Relaunch Setup Wizard
+        </Button>
       </header>
 
       <Card>
@@ -659,6 +670,8 @@ function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <OnboardingDialog open={isOnboardingOpen} onOpenChange={setIsOnboardingOpen} />
     </div>
   );
 }

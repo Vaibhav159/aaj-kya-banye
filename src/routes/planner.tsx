@@ -14,9 +14,10 @@ import { buildIcs, downloadIcs } from "@/lib/ical";
 import { drawWeeklyPlan } from "@/lib/share-image";
 import { generateSolvedPlan, type SolverResult } from "@/lib/plan-shuffler";
 import { useCustomRules } from "@/lib/custom-rules";
-import { Shuffle, ArrowRight, Sparkles, Heart, Share2, FileText, Link as LinkIcon, Image as ImageIcon, Calendar } from "lucide-react";
+import { Shuffle, ArrowRight, Sparkles, Heart, Share2, FileText, Link as LinkIcon, Image as ImageIcon, Calendar, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DishDetailDialog } from "@/components/dish-detail";
+import { SearchPlannerDialog } from "@/components/search-planner-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +49,7 @@ function PlannerPage() {
   const plan = useMemo(() => applyOverrides(overrides), [overrides]);
 
   const [isShuffleOpen, setIsShuffleOpen] = useState(false);
+  const [isSearchPlannerOpen, setIsSearchPlannerOpen] = useState(false);
   const [solverResult, setSolverResult] = useState<SolverResult | null>(null);
   const [shuffleRange, setShuffleRange] = useState<"7days" | "42days">("7days");
 
@@ -248,6 +250,9 @@ function PlannerPage() {
           </Button>
           <Button onClick={() => setIsShuffleOpen(true)} variant="outline" className="flex items-center gap-1.5 cursor-pointer">
             <Shuffle className="h-4 w-4" /> Shuffle / Rotate
+          </Button>
+          <Button onClick={() => setIsSearchPlannerOpen(true)} variant="outline" className="flex items-center gap-1.5 cursor-pointer">
+            <Search className="h-4 w-4" /> Search & Plan
           </Button>
           {/* ponytail: consolidated 4 separate share buttons into a single DropdownMenu to declutter the toolbar UI */}
           <DropdownMenu>
@@ -620,6 +625,11 @@ function PlannerPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <SearchPlannerDialog
+        open={isSearchPlannerOpen}
+        onOpenChange={setIsSearchPlannerOpen}
+        defaultDayIdx={dayIdx}
+      />
     </div>
   );
 }

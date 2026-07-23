@@ -39,6 +39,7 @@ import logoSvg from "../../public/logo.svg?url";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
+import { OnboardingDialog } from "@/components/onboarding-dialog";
 
 function NotFoundComponent() {
   return (
@@ -380,6 +381,7 @@ function RootComponent() {
         <Toaster richColors position="top-center" />
         <BottomNav />
         <CalendarSyncObserver />
+        <OnboardingDialog />
 
         <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
           <CommandInput

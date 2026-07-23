@@ -3,6 +3,7 @@ import { BASE_PLAN, type DayPlan } from "./plan";
 import type { Dish, Slot, DishTag, Cuisine, CookingType, Equipment } from "./dishes";
 import { supabase } from "./supabase";
 import { type CustomRule, type RuleKind, type RuleScope, type RuleMatch, EXAMPLE_RULES } from "./custom-rules";
+import { applyTheme } from "./theme";
 
 export type CustomDish = Dish & { custom: true };
 
@@ -54,6 +55,7 @@ async function syncProfile(profile: Profile) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    const theme = typeof window !== "undefined" ? localStorage.getItem("thali:theme") || "system" : "system";
     await supabase.from("profiles").upsert({
       id: user.id,
       name: profile.name,
@@ -66,6 +68,7 @@ async function syncProfile(profile: Profile) {
       breakfast_time: profile.breakfastTime,
       lunch_time: profile.lunchTime,
       dinner_time: profile.dinnerTime,
+      theme,
       updated_at: new Date().toISOString(),
     });
   } catch (err) {
@@ -160,7 +163,7 @@ export async function syncAllData() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // 1. Sync Profile
+    // 1. Sync Profile & Theme
     const { data: remoteProfile, error: profileError } = await supabase
       .from("profiles")
       .select("*")
@@ -185,6 +188,10 @@ export async function syncAllData() {
         dinnerTime: remoteProfile.dinner_time,
       };
       window.localStorage.setItem(PROFILE_KEY, JSON.stringify(mergedProfile));
+      if (remoteProfile.theme && typeof window !== "undefined") {
+        window.localStorage.setItem("thali:theme", remoteProfile.theme);
+        applyTheme(remoteProfile.theme as any);
+      }
     } else {
       const localProfile = readLS<Partial<Profile>>(PROFILE_KEY, {});
       await syncProfile({ ...DEFAULT_PROFILE, ...localProfile });
