@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DISHES_BY_ID } from "@/lib/dishes";
 import { applyOverrides, currentDayIndex, useCycleStart, useOverrides } from "@/lib/store";
 import { type DayPlan } from "@/lib/plan";
@@ -385,7 +387,7 @@ function PlannerPage() {
               {/* Solver quality feedback */}
               {solverResult && (
                 <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full font-medium ${
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium ${
                     solverResult.score >= 80 ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                     : solverResult.score >= 50 ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
                     : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
@@ -393,15 +395,59 @@ function PlannerPage() {
                     {solverResult.score >= 80 ? "✓" : solverResult.score >= 50 ? "⚠" : "✗"}
                     {solverResult.score}% quality
                   </span>
+
                   {solverResult.relaxed.length > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 font-medium">
-                      ⚡ {solverResult.relaxed.length} rule{solverResult.relaxed.length > 1 ? "s" : ""} relaxed
-                    </span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 font-medium cursor-pointer hover:bg-amber-200/80 transition-colors border-0 text-xs select-none"
+                        >
+                          ⚡ {solverResult.relaxed.length} rule{solverResult.relaxed.length > 1 ? "s" : ""} relaxed
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent side="bottom" align="start" className="w-80 space-y-2 p-3 text-xs shadow-lg border border-amber-200 dark:border-amber-900/50">
+                        <div className="font-semibold text-amber-700 dark:text-amber-400">
+                          Relaxed Rules ({solverResult.relaxed.length})
+                        </div>
+                        <p className="text-muted-foreground text-[11px]">
+                          These constraints were softened by the solver to find a solution:
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 text-foreground/90 font-medium">
+                          {solverResult.relaxed.map((id) => {
+                            const rule = customRules.find((r) => r.id === id);
+                            return <li key={id}>{rule?.label ?? id}</li>;
+                          })}
+                        </ul>
+                      </PopoverContent>
+                    </Popover>
                   )}
+
                   {solverResult.violations.length > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 font-medium">
-                      {solverResult.violations.length} violation{solverResult.violations.length > 1 ? "s" : ""}
-                    </span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 font-medium cursor-pointer hover:bg-red-200/80 transition-colors border-0 text-xs select-none"
+                        >
+                          {solverResult.violations.length} violation{solverResult.violations.length > 1 ? "s" : ""}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent side="bottom" align="start" className="w-80 space-y-2 p-3 text-xs shadow-lg border border-red-200 dark:border-red-900/50">
+                        <div className="font-semibold text-red-600 dark:text-red-400">
+                          Rule Violations ({solverResult.violations.length})
+                        </div>
+                        <p className="text-muted-foreground text-[11px]">
+                          The plan currently violates the following rules:
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 text-foreground/90 font-medium">
+                          {solverResult.violations.map((id) => {
+                            const rule = customRules.find((r) => r.id === id);
+                            return <li key={id}>{rule?.label ?? id}</li>;
+                          })}
+                        </ul>
+                      </PopoverContent>
+                    </Popover>
                   )}
                 </div>
               )}
