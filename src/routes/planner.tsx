@@ -360,22 +360,22 @@ function PlannerPage() {
               <Button
                 variant="outline"
                 onClick={() => startShuffle("7days")}
-                className="h-32 flex flex-col justify-center gap-2 text-lg font-semibold hover:border-primary/50 group cursor-pointer"
+                className="h-32 flex flex-col items-center justify-center p-4 gap-1.5 text-lg font-semibold hover:border-primary/50 group cursor-pointer whitespace-normal"
               >
-                <Shuffle className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+                <Shuffle className="h-6 w-6 text-muted-foreground group-hover:text-primary shrink-0" />
                 <span>Shuffle Next 7 Days</span>
-                <span className="text-xs font-normal text-muted-foreground max-w-[200px] text-center">
+                <span className="text-xs font-normal text-muted-foreground text-center leading-relaxed">
                   Only shuffle meals for the upcoming week cycle
                 </span>
               </Button>
               <Button
                 variant="outline"
                 onClick={() => startShuffle("42days")}
-                className="h-32 flex flex-col justify-center gap-2 text-lg font-semibold hover:border-primary/50 group cursor-pointer"
+                className="h-32 flex flex-col items-center justify-center p-4 gap-1.5 text-lg font-semibold hover:border-primary/50 group cursor-pointer whitespace-normal"
               >
-                <Shuffle className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+                <Shuffle className="h-6 w-6 text-muted-foreground group-hover:text-primary shrink-0" />
                 <span>Shuffle Full 42 Days</span>
-                <span className="text-xs font-normal text-muted-foreground max-w-[200px] text-center">
+                <span className="text-xs font-normal text-muted-foreground text-center leading-relaxed">
                   Re-rotate and shuffle all meals in the 42-day rotation
                 </span>
               </Button>

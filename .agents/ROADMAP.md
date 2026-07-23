@@ -35,7 +35,16 @@ Prioritized backlog. Agents: build from top down when asked "what's next." Updat
 - ✅ Notifications / reminders (meal time alerts)
 - ✅ Share Weekly meal plans as image 
 
-### P4 - Good to have 
+### P4 - Enhanced
+- Make dish cards interactive (mark favorite, set rule, view details)
+- Add tooltips for stats and icons
+- Add more filters to dishes
+- Make "Generate Plan" less hidden (maybe secondary button on planner)
+- Add Base & Cuisine badges (e.g., Roti / Rice / Dal & North Indian / South Indian) everywhere
+
+### P5 - Good to have 
+- Add search-based planning (type a dish, slot → search pool + suggestions)
+- Improve UI: fix spacing, typography, card shadows, rounded corners
 - ⬜ Meal photo integration (upload or generate per dish)
 - ⬜ Expand dish database to 100+ dishes
 - ⬜ Seasonal/regional dish suggestions
@@ -45,7 +54,7 @@ Prioritized backlog. Agents: build from top down when asked "what's next." Updat
 - ⬜ Recipe page per dish (ingredients, steps, video link)
 - ⬜ PWA support (service worker, installable, offline cache)
 
-### P5 — Future / TBD
+### P6 — Future / TBD
 - ⬜ "What's in my fridge" reverse ingredient search (select ingredients → find matching dishes)
 - ⬜ Family/household portion multiplier (scale grocery & macros for 2–4 people)
 - ⬜ "Ate out" / off-plan meal logging (quick-add custom meal with estimated macros)
