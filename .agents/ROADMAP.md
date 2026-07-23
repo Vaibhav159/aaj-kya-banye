@@ -50,6 +50,7 @@ Prioritized backlog. Agents: build from top down when asked "what's next." Updat
 - ⬜ Meal photo integration (upload or generate per dish)
 - ✅ Expand dish database to 150+ popular Indian dishes with rich multi-dimensional tagging
 - ⬜ Onboarding flow for first-time users (guided profile setup)
+- ✅ Add darkmode, which is currently missing and it should be exact opposite of the light mode and not hacky versiom, where some part gets dark and some stays in light.
 
 ### P6 — Future / TBD
 - ⬜ "Cook now" timer with prep steps

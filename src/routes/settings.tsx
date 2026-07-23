@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DEFAULT_PROFILE, useCycleStart, useProfile, type Profile, syncAllData } from "@/lib/store";
+import { DEFAULT_PROFILE, useCycleStart, useProfile, type Profile, syncAllData, readLS } from "@/lib/store";
 import { buildIcs, downloadIcs } from "@/lib/ical";
 import { applyOverrides, currentDayIndex, useOverrides } from "@/lib/store";
 import { saveCalendarFeed } from "@/lib/calendar-server";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { useTheme } from "@/lib/theme";
+import { Sun, Moon, Monitor } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -24,6 +26,7 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
+  const { theme, setTheme } = useTheme();
   const { profile, save, hydrated } = useProfile();
   const { start, reset } = useCycleStart();
   const { overrides } = useOverrides();
@@ -167,12 +170,12 @@ function SettingsPage() {
   }, [hydrated, profile]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }: any) => {
       setUser(user);
       setSyncLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setUser(session?.user ?? null);
     });
 
@@ -364,6 +367,57 @@ function SettingsPage() {
           <Field label="Target weight (kg)">
             <Input type="number" value={form.targetKg} onChange={(e) => update("targetKg", Number(e.target.value))} />
           </Field>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance & Theme</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Choose your preferred theme mode or follow your system settings automatically.
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => setTheme("system")}
+              className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-4 text-center transition-all ${
+                theme === "system"
+                  ? "border-primary bg-primary/10 text-primary font-medium shadow-sm"
+                  : "border-border bg-card hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Monitor className="h-5 w-5" />
+              <span className="text-xs font-semibold">System</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTheme("light")}
+              className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-4 text-center transition-all ${
+                theme === "light"
+                  ? "border-primary bg-primary/10 text-primary font-medium shadow-sm"
+                  : "border-border bg-card hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Sun className="h-5 w-5" />
+              <span className="text-xs font-semibold">Light</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setTheme("dark")}
+              className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-4 text-center transition-all ${
+                theme === "dark"
+                  ? "border-primary bg-primary/10 text-primary font-medium shadow-sm"
+                  : "border-border bg-card hover:bg-secondary/50 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Moon className="h-5 w-5" />
+              <span className="text-xs font-semibold">Dark</span>
+            </button>
+          </div>
         </CardContent>
       </Card>
 

@@ -38,7 +38,7 @@ const OVERRIDES_KEY = "thali:overrides";
 const LOG_KEY = "thali:log";
 const CUSTOM_DISHES_KEY = "thali:customDishes";
 
-function readLS<T>(key: string, fallback: T): T {
+export function readLS<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
     const raw = window.localStorage.getItem(key);
@@ -221,13 +221,13 @@ export async function syncAllData() {
     if (remoteOverrides && remoteOverrides.length > 0) {
       const localOverrides = readLS<Overrides>(OVERRIDES_KEY, {});
       const mergedOverrides = { ...localOverrides };
-      remoteOverrides.forEach((row) => {
+      remoteOverrides.forEach((row: any) => {
         mergedOverrides[row.key] = row.dish_id;
       });
       window.localStorage.setItem(OVERRIDES_KEY, JSON.stringify(mergedOverrides));
       
       for (const [k, v] of Object.entries(localOverrides)) {
-        if (!remoteOverrides.some(r => r.key === k)) {
+        if (!remoteOverrides.some((r: any) => r.key === k)) {
           await syncOverride(k, v);
         }
       }
@@ -251,7 +251,7 @@ export async function syncAllData() {
     if (remoteLogs && remoteLogs.length > 0) {
       const localLogs = readLS<MealLog>(LOG_KEY, {});
       const mergedLogs = { ...localLogs };
-      remoteLogs.forEach((row) => {
+      remoteLogs.forEach((row: any) => {
         const localEntry = localLogs[row.key];
         if (!localEntry || row.logged_at > localEntry.at) {
           mergedLogs[row.key] = { status: row.status as LogStatus, at: Number(row.logged_at) };
@@ -260,7 +260,7 @@ export async function syncAllData() {
       window.localStorage.setItem(LOG_KEY, JSON.stringify(mergedLogs));
 
       for (const [k, v] of Object.entries(localLogs)) {
-        const match = remoteLogs.find(r => r.key === k);
+        const match = remoteLogs.find((r: any) => r.key === k);
         if (!match || v.at > Number(match.logged_at)) {
           await syncMealLog(k, v);
         }
@@ -285,7 +285,7 @@ export async function syncAllData() {
     if (remoteCustomDishes && remoteCustomDishes.length > 0) {
       const localCustomDishes = readLS<CustomDish[]>(CUSTOM_DISHES_KEY, []);
       const mergedDishes = [...localCustomDishes];
-      remoteCustomDishes.forEach((row) => {
+      remoteCustomDishes.forEach((row: any) => {
         const idx = mergedDishes.findIndex(d => d.id === row.id);
         const mappedDish: CustomDish = {
           id: row.id,
@@ -315,7 +315,7 @@ export async function syncAllData() {
       window.localStorage.setItem(CUSTOM_DISHES_KEY, JSON.stringify(mergedDishes));
 
       for (const d of localCustomDishes) {
-        if (!remoteCustomDishes.some(r => r.id === d.id)) {
+        if (!remoteCustomDishes.some((r: any) => r.id === d.id)) {
           await syncCustomDish(d);
         }
       }
@@ -339,7 +339,7 @@ export async function syncAllData() {
     if (remoteCustomRules && remoteCustomRules.length > 0) {
       const localRules = readLS<CustomRule[]>("thali:customRules", EXAMPLE_RULES);
       const mergedRules = [...localRules];
-      remoteCustomRules.forEach((row) => {
+      remoteCustomRules.forEach((row: any) => {
         const idx = mergedRules.findIndex(r => r.id === row.id);
         const mappedRule: CustomRule = {
           id: row.id,
@@ -358,7 +358,7 @@ export async function syncAllData() {
       window.localStorage.setItem("thali:customRules", JSON.stringify(mergedRules));
 
       for (const r of localRules) {
-        if (!remoteCustomRules.some(remote => remote.id === r.id)) {
+        if (!remoteCustomRules.some((remote: any) => remote.id === r.id)) {
           await supabase.from("custom_rules").upsert({
             id: r.id,
             user_id: user.id,
@@ -510,7 +510,7 @@ export function useOverrides() {
       window.localStorage.removeItem(OVERRIDES_KEY);
     }
     // Delete overrides from Supabase
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }: any) => {
       if (user) supabase.from("overrides").delete().eq("user_id", user.id).then();
     });
   }, []);
@@ -587,7 +587,7 @@ export function useMealLog() {
   const clearAll = useCallback(() => {
     setLog({});
     persist({});
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }: any) => {
       if (user) supabase.from("meal_logs").delete().eq("user_id", user.id).then();
     });
   }, []);

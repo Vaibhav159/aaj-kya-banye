@@ -324,7 +324,7 @@ function hillClimb(
         const candidates = pool[slot]
           .filter((d) => d.id !== currentId)
           .filter((d) =>
-            checkHardCrossDay(grid, dIdx, sIdx, d.id, hardRules, targetIndices),
+            checkHardCrossDay(grid, dIdx, sIdx, d.id, hardRules, targetIndices, pool),
           );
 
         let bestId = currentId;
