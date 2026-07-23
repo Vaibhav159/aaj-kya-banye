@@ -14,9 +14,15 @@ import { buildIcs, downloadIcs } from "@/lib/ical";
 import { drawWeeklyPlan } from "@/lib/share-image";
 import { generateSolvedPlan, type SolverResult } from "@/lib/plan-shuffler";
 import { useCustomRules } from "@/lib/custom-rules";
-import { Shuffle, ArrowRight, Sparkles, Heart } from "lucide-react";
+import { Shuffle, ArrowRight, Sparkles, Heart, Share2, FileText, Link as LinkIcon, Image as ImageIcon, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DishDetailDialog } from "@/components/dish-detail";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/planner")({
 
@@ -244,10 +250,28 @@ function PlannerPage() {
           <Button onClick={() => setIsShuffleOpen(true)} variant="outline" className="flex items-center gap-1.5 cursor-pointer">
             <Shuffle className="h-4 w-4" /> Shuffle / Rotate
           </Button>
-          <Button variant="outline" onClick={onShare}>Share summary</Button>
-          <Button variant="outline" onClick={onShareLink}>Share plan link</Button>
-          <Button variant="outline" onClick={onShareImage}>Share image</Button>
-          <Button variant="outline" onClick={onIcs}>Export .ics</Button>
+          {/* ponytail: consolidated 4 separate share buttons into a single DropdownMenu to declutter the toolbar UI */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-1.5 cursor-pointer">
+                <Share2 className="h-4 w-4" /> Share
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onShare} className="cursor-pointer">
+                <FileText className="h-4 w-4 mr-2" /> Share text summary
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onShareLink} className="cursor-pointer">
+                <LinkIcon className="h-4 w-4 mr-2" /> Share plan link
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onShareImage} className="cursor-pointer">
+                <ImageIcon className="h-4 w-4 mr-2" /> Share plan image
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onIcs} className="cursor-pointer">
+                <Calendar className="h-4 w-4 mr-2" /> Export calendar (.ics)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
