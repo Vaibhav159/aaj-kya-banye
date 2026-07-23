@@ -23,7 +23,9 @@ import { checkDay, isSwapAllowed, RULES } from "@/lib/rules";
 import { DishDetailDialog } from "@/components/dish-detail";
 import { shareOrCopy, todaySummary } from "@/lib/share";
 import { toast } from "sonner";
-import { useCustomRules, type CustomRule } from "@/lib/custom-rules";
+import { useCustomRules, dishMatches, type CustomRule } from "@/lib/custom-rules";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { type DayPlan } from "@/lib/plan";
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
@@ -113,7 +115,15 @@ function Dashboard() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
         <NutritionCard totals={totals} profile={profile} />
-        <RulesCard checks={ruleChecks} customRules={customRules} />
+        <RulesCard
+          checks={ruleChecks}
+          customRules={customRules}
+          dayPlan={today}
+          weekPlan={useMemo(() => {
+            const ws = Math.floor(dayIdx / 7) * 7;
+            return plan.slice(ws, ws + 7);
+          }, [plan, dayIdx])}
+        />
       </div>
 
       <RecentStrip log={log} start={start} plan={plan} todayIdx={dayIdx} profile={profile} />
@@ -277,7 +287,17 @@ function MacroBar({ label, value, goal, color }: { label: string; value: number;
   );
 }
 
-function RulesCard({ checks, customRules }: { checks: ReturnType<typeof checkDay>; customRules: CustomRule[] }) {
+function RulesCard({
+  checks,
+  customRules,
+  dayPlan,
+  weekPlan,
+}: {
+  checks: ReturnType<typeof checkDay>;
+  customRules: CustomRule[];
+  dayPlan: DayPlan;
+  weekPlan: DayPlan[];
+}) {
   const enabledCustomRules = customRules.filter((r) => r.enabled);
   return (
     <Card>
@@ -294,17 +314,7 @@ function RulesCard({ checks, customRules }: { checks: ReturnType<typeof checkDay
                 <div className="text-sm font-medium">{rule.label}</div>
                 <div className="text-xs text-muted-foreground capitalize">{rule.kind.replace(/-/g, " ")} · {rule.scope}</div>
               </div>
-              <span
-                className={
-                  "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium " +
-                  (c?.passed
-                    ? "bg-success/15 text-success"
-                    : "bg-destructive/15 text-destructive")
-                }
-                style={{ color: c?.passed ? "var(--color-success)" : "var(--color-destructive)" }}
-              >
-                {c?.passed ? "✓" : "!"} {c?.detail}
-              </span>
+              <RuleBadgePopover rule={rule} check={c} dayPlan={dayPlan} weekPlan={weekPlan} />
             </div>
           );
         })}
@@ -315,6 +325,153 @@ function RulesCard({ checks, customRules }: { checks: ReturnType<typeof checkDay
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function RuleBadgePopover({
+  rule,
+  check,
+  dayPlan,
+  weekPlan,
+}: {
+  rule: CustomRule;
+  check: import("@/lib/rules").RuleCheck;
+  dayPlan: DayPlan;
+  weekPlan: DayPlan[];
+}) {
+  const [open, setOpen] = useState(false);
+
+  const slotsToCheck: Slot[] = rule.scope === "any" ? ["breakfast", "lunch", "dinner"] : [rule.scope];
+
+  const matchingWeekItems = useMemo(() => {
+    if (rule.kind !== "min-frequency" && rule.kind !== "max-frequency") return [];
+    const items: { day: number; slot: Slot; dish: Dish }[] = [];
+    weekPlan.forEach((d) => {
+      slotsToCheck.forEach((s) => {
+        const dish = DISHES_BY_ID[d[s]];
+        if (dish && dishMatches(dish, rule.match)) {
+          items.push({ day: d.day, slot: s, dish });
+        }
+      });
+    });
+    return items;
+  }, [rule, weekPlan, slotsToCheck]);
+
+  const todaySlotItems = useMemo(() => {
+    return slotsToCheck.map((s) => {
+      const dish = DISHES_BY_ID[dayPlan[s]];
+      const matches = dish ? dishMatches(dish, rule.match) : false;
+      return { slot: s, dish, matches };
+    });
+  }, [rule, dayPlan, slotsToCheck]);
+
+  const lunchDish = DISHES_BY_ID[dayPlan.lunch];
+  const dinnerDish = DISHES_BY_ID[dayPlan.dinner];
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+          onClick={() => setOpen((prev) => !prev)}
+          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium border-0 cursor-pointer hover:opacity-80 transition-opacity select-none ${
+            check.passed
+              ? "bg-success/15 text-success dark:bg-green-900/30 dark:text-green-400"
+              : "bg-destructive/15 text-destructive dark:bg-red-900/30 dark:text-red-400"
+          }`}
+          style={{ color: check.passed ? "var(--color-success)" : "var(--color-destructive)" }}
+        >
+          {check.passed ? "✓" : "!"} {check.detail}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        side="bottom"
+        align="end"
+        className="w-72 sm:w-80 p-3 space-y-2 text-xs shadow-lg"
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+      >
+        <div className="font-semibold text-foreground border-b pb-1.5 flex items-center justify-between">
+          <span>{rule.label}</span>
+          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${check.passed ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"}`}>
+            {check.passed ? "Passed" : "Violated"}
+          </span>
+        </div>
+
+        {/* Weekly frequency rules */}
+        {(rule.kind === "min-frequency" || rule.kind === "max-frequency") && (
+          <div className="space-y-1.5">
+            <p className="text-muted-foreground text-[11px]">
+              Matches in current week ({matchingWeekItems.length} found, limit: {rule.match.frequencyLimit ?? 1}/week):
+            </p>
+            {matchingWeekItems.length === 0 ? (
+              <p className="text-muted-foreground italic py-1 text-[11px]">No matching dishes this week.</p>
+            ) : (
+              <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
+                {matchingWeekItems.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between gap-2 p-1.5 rounded-md bg-secondary/40">
+                    <span className="truncate font-medium flex items-center gap-1.5">
+                      <span>{item.dish.emoji}</span>
+                      <span className="truncate">{item.dish.name}</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground capitalize shrink-0">
+                      Day {item.day + 1} · {item.slot}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Avoid / Require / Prefer rules */}
+        {(rule.kind === "avoid" || rule.kind === "require" || rule.kind === "prefer") && (
+          <div className="space-y-1.5">
+            <p className="text-muted-foreground text-[11px]">Today's meals status:</p>
+            <div className="space-y-1">
+              {todaySlotItems.map((item) => (
+                <div key={item.slot} className="flex items-center justify-between gap-2 p-1.5 rounded-md bg-secondary/40">
+                  <span className="truncate font-medium flex items-center gap-1.5">
+                    <span>{item.dish?.emoji}</span>
+                    <span className="truncate">{item.dish?.name ?? "None"}</span>
+                  </span>
+                  <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded capitalize shrink-0 ${
+                    item.matches ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" : "bg-muted text-muted-foreground"
+                  }`}>
+                    {item.slot}: {item.matches ? "Matches" : "No match"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Lighter dinner rule */}
+        {rule.kind === "lighter-dinner" && (
+          <div className="space-y-1.5 text-muted-foreground">
+            <div className="flex justify-between items-center p-1.5 rounded bg-secondary/40 text-foreground">
+              <span className="flex items-center gap-1">☀️ Lunch: {lunchDish?.name}</span>
+              <span className="font-semibold">{lunchDish?.kcal ?? 0} kcal</span>
+            </div>
+            <div className="flex justify-between items-center p-1.5 rounded bg-secondary/40 text-foreground">
+              <span className="flex items-center gap-1">🌙 Dinner: {dinnerDish?.name}</span>
+              <span className="font-semibold">{dinnerDish?.kcal ?? 0} kcal</span>
+            </div>
+          </div>
+        )}
+
+        {/* No repeat rule */}
+        {rule.kind === "no-repeat" && (
+          <p className="text-muted-foreground text-[11px]">
+            {check.passed
+              ? `No dishes repeat within ${rule.match.minDaysBetweenRepeat ?? 3} days of today.`
+              : `One or more dishes in today's menu repeat within ${rule.match.minDaysBetweenRepeat ?? 3} days.`}
+          </p>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }
 
