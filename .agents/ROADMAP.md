@@ -45,17 +45,17 @@ Prioritized backlog. Agents: build from top down when asked "what's next." Updat
 
 
 ### P5 - Good to have 
-- Add search-based planning (type a dish, slot → search pool + suggestions)
-- Improve UI: fix spacing, typography, card shadows, rounded corners
-- ⬜ Meal photo integration (upload or generate per dish)
-- ⬜ Expand dish database to 100+ dishes
-- ⬜ Seasonal/regional dish suggestions
-- ⬜ Onboarding flow for first-time users (guided profile setup)
-- ⬜ "Cook now" timer with prep steps
-- ⬜ AI meal recommendations based on history
-- ⬜ Recipe page per dish (ingredients, steps, video link)
+- ✅ Add search-based planning (type a dish, slot → search pool + suggestions)
+- ✅ Improve UI: fix spacing, typography, card shadows, rounded corners
+- ✅ Expand dish database to 150+ popular Indian dishes with rich multi-dimensional tagging
+- ✅ Onboarding flow for first-time users (guided profile setup)
+- ✅ Add darkmode, which is currently missing and it should be exact opposite of the light mode and not hacky versiom, where some part gets dark and some stays in light.
 
 ### P6 — Future / TBD
+- ⬜ "Cook now" timer with prep steps
+- ⬜ Meal photo integration (upload or generate per dish)
+- ⬜ AI meal recommendations based on history
+- ⬜ Recipe page per dish (ingredients, steps, video link)
 - ⬜ "What's in my fridge" reverse ingredient search (select ingredients → find matching dishes)
 - ⬜ Family/household portion multiplier (scale grocery & macros for 2–4 people)
 - ⬜ "Ate out" / off-plan meal logging (quick-add custom meal with estimated macros)

@@ -205,7 +205,7 @@ function MealCard({
 
         <div className="flex flex-wrap gap-1.5 items-center">
           {cuisineName && (
-            <Badge variant="default" className="text-[10px] bg-amber-950 text-amber-50 dark:bg-amber-950 dark:text-amber-100 py-0 border border-amber-800">
+            <Badge variant="default" className="text-[10px] bg-amber-950 text-amber-50 dark:bg-amber-900/50 dark:text-amber-200 py-0 border border-amber-800 dark:border-amber-700/60">
               🗺️ {cuisineName}
             </Badge>
           )}

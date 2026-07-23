@@ -47,7 +47,7 @@ export function DishDetailDialog({
         <div className="space-y-4">
           <div className="flex flex-wrap gap-1.5 items-center">
             {cuisineName && (
-              <Badge variant="default" className="bg-amber-950 text-amber-50 dark:bg-amber-950 dark:text-amber-100 border border-amber-800">
+              <Badge variant="default" className="bg-amber-950 text-amber-50 dark:bg-amber-900/50 dark:text-amber-200 border border-amber-800 dark:border-amber-700/60">
                 🗺️ {cuisineName}
               </Badge>
             )}

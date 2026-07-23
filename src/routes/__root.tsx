@@ -13,7 +13,8 @@ import { saveCalendarFeed } from "@/lib/calendar-server";
 import { DISHES, type Dish } from "@/lib/dishes";
 import { SNACKS } from "@/lib/snacks";
 import { DishDetailDialog } from "@/components/dish-detail";
-import { Search } from "lucide-react";
+import { Search, Sun, Moon, Monitor } from "lucide-react";
+import { useTheme, type ThemeMode } from "@/lib/theme";
 import {
   CommandDialog,
   CommandEmpty,
@@ -38,6 +39,7 @@ import logoSvg from "../../public/logo.svg?url";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
+import { OnboardingDialog } from "@/components/onboarding-dialog";
 
 function NotFoundComponent() {
   return (
@@ -137,8 +139,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap",
-        media: "print",
-        onLoad: "this.media='all'",
       },
     ],
     scripts: [
@@ -171,6 +171,18 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function() {
+              try {
+                var mode = localStorage.getItem('thali:theme') || 'system';
+                var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                if (dark) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+              } catch (e) {}
+            })();`,
+          }}
+        />
         <HeadContent />
       </head>
       <body>
@@ -369,6 +381,7 @@ function RootComponent() {
         <Toaster richColors position="top-center" />
         <BottomNav />
         <CalendarSyncObserver />
+        <OnboardingDialog />
 
         <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
           <CommandInput
@@ -467,6 +480,7 @@ function RootComponent() {
 }
 
 function SiteHeader({ onSearchClick }: { onSearchClick: () => void }) {
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const links: { to: string; label: string }[] = [
     { to: "/", label: "Today" },
     { to: "/planner", label: "Planner" },
@@ -478,9 +492,16 @@ function SiteHeader({ onSearchClick }: { onSearchClick: () => void }) {
     { to: "/rules", label: "Rules" },
     { to: "/settings", label: "Settings" },
   ];
+
+  const cycleTheme = () => {
+    if (theme === "system") setTheme("light");
+    else if (theme === "light") setTheme("dark");
+    else setTheme("system");
+  };
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto grid grid-cols-[1fr_auto_auto] md:grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-3">
+      <div className="mx-auto grid grid-cols-[1fr_auto_auto] md:grid-cols-[auto_1fr_auto_auto] items-center gap-3 px-4 py-3">
         <Link to="/" className="flex min-w-0 items-center gap-2.5">
           <img src={logoSvg} alt="Aaj Kya Banaye Logo" className="h-9 w-9 shrink-0 drop-shadow-sm" />
           <span className="truncate font-display text-xl font-semibold">Aaj Kya Banaye?</span>
@@ -498,6 +519,23 @@ function SiteHeader({ onSearchClick }: { onSearchClick: () => void }) {
           <kbd className="pointer-events-none hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground ml-auto">
             <span className="text-xs">⌘</span>K
           </kbd>
+        </button>
+
+        {/* Theme Mode Toggle button */}
+        <button
+          type="button"
+          aria-label={`Current theme: ${theme}. Click to change.`}
+          title={`Theme: ${theme.toUpperCase()} (Click to toggle)`}
+          onClick={cycleTheme}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-secondary/50 text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring select-none shrink-0"
+        >
+          {theme === "system" ? (
+            <Monitor className="h-4 w-4 text-muted-foreground" />
+          ) : resolvedTheme === "dark" ? (
+            <Moon className="h-4 w-4 text-amber-400" />
+          ) : (
+            <Sun className="h-4 w-4 text-amber-600" />
+          )}
         </button>
 
         <nav className="hidden md:flex flex-wrap items-center gap-1 text-sm justify-end">
