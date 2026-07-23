@@ -11,10 +11,10 @@ import type { Dish } from "@/lib/dishes";
 export const Route = createFileRoute("/snacks")({
   head: () => ({
     meta: [
-      { title: "Snacks · Aaj Kya Banaye?" },
-      { name: "description", content: "Pick a craving and get quick Indian vegetarian snack suggestions that match how you feel." },
-      { property: "og:title", content: "Snacks · Aaj Kya Banaye?" },
-      { property: "og:description", content: "Craving-based snack suggestions for your Indian vegetarian meal plan." },
+      { title: "Healthy Indian Snacks Finder & Calorie Counter · Aaj Kya Banaye?" },
+      { name: "description", content: "Discover Indian vegetarian snacks filtered by cravings (crunchy, sweet, spicy, protein-packed, quick) with exact calorie and macro tracking." },
+      { property: "og:title", content: "Indian Snacks Finder by Craving & Calories · Aaj Kya Banaye?" },
+      { property: "og:description", content: "Filter healthy Indian snacks by craving, calories, and nutrition values." },
     ],
   }),
   component: SnacksPage,

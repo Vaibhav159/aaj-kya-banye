@@ -10,10 +10,10 @@ import { applyOverrides, currentDayIndex, useCycleStart, useOverrides } from "@/
 export const Route = createFileRoute("/kuch-bhi")({
   head: () => ({
     meta: [
-      { title: "Kuch Bhi · Aaj Kya Banaye?" },
-      { name: "description", content: "Answer a few quick yes/no questions and let us pick tonight's dinner for you." },
-      { property: "og:title", content: "Kuch Bhi · Aaj Kya Banaye?" },
-      { property: "og:description", content: "Tinder-style meal picker for when you can't decide." },
+      { title: "Kuch Bhi - Instant Meal Decision Helper · Aaj Kya Banaye?" },
+      { name: "description", content: "Can't decide what to cook? Answer quick questions about craving, prep time, and spice level to get instant Indian vegetarian meal recommendations." },
+      { property: "og:title", content: "Kuch Bhi - Instant Indian Meal Finder · Aaj Kya Banaye?" },
+      { property: "og:description", content: "Interactive meal decision helper for Indian vegetarian cooking." },
     ],
   }),
   component: DecidePage,

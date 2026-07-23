@@ -14,10 +14,10 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 export const Route = createFileRoute("/settings")({
   head: () => ({
     meta: [
-      { title: "Settings · Aaj Kya Banaye?" },
-      { name: "description", content: "Set your name, weight, target and daily calorie / macro goals for your meal plan." },
-      { property: "og:title", content: "Settings · Aaj Kya Banaye?" },
-      { property: "og:description", content: "Personalise your Aaj Kya Banaye? meal-plan profile and goals." },
+      { title: "Settings & Profile Preferences · Aaj Kya Banaye?" },
+      { name: "description", content: "Configure custom calorie targets, macro ratios, meal reminder times, iCal calendar feeds, and Supabase cloud sync." },
+      { property: "og:title", content: "Settings & Profile Preferences · Aaj Kya Banaye?" },
+      { property: "og:description", content: "Personalize daily calorie goals, macro targets, and calendar sync." },
     ],
   }),
   component: SettingsPage,

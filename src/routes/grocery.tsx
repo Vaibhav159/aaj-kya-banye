@@ -10,10 +10,10 @@ import { applyOverrides, currentDayIndex, useCycleStart, useOverrides } from "@/
 export const Route = createFileRoute("/grocery")({
   head: () => ({
     meta: [
-      { title: "Grocery · Aaj Kya Banaye?" },
-      { name: "description", content: "Smart grocery list aggregated from your meal plan, grouped by category with copy-to-clipboard." },
-      { property: "og:title", content: "Grocery · Aaj Kya Banaye?" },
-      { property: "og:description", content: "Aggregated grocery list from your Indian vegetarian meal plan." },
+      { title: "Smart Indian Grocery List Generator · Aaj Kya Banaye?" },
+      { name: "description", content: "Automatic grocery list generator for Indian vegetarian meal plans. Aggregates ingredients by category (veggies, grains, spices, dairy) for 1, 3, or 7 days." },
+      { property: "og:title", content: "Smart Indian Grocery List Generator · Aaj Kya Banaye?" },
+      { property: "og:description", content: "Automated ingredient aggregation for Indian vegetarian cooking by date range." },
     ],
   }),
   component: GroceryPage,

@@ -24,11 +24,39 @@ import { DishDetailDialog } from "@/components/dish-detail";
 export const Route = createFileRoute("/database")({
   head: () => ({
     meta: [
-      { title: "Dish Database · Aaj Kya Banaye?" },
-      { name: "description", content: "Searchable database of Indian vegetarian dishes with calorie and macro details." },
-      { property: "og:title", content: "Dish Database · Aaj Kya Banaye?" },
-      { property: "og:description", content: "Browse Indian vegetarian dishes with kcal, protein, carbs and fat." },
+      { title: "Indian Vegetarian Dish Database & Macros · Aaj Kya Banaye?" },
+      { name: "description", content: "Explore 70+ Indian vegetarian dishes with full nutrition info (calories, protein, carbs, fat), recipes, cuisine tags, and prep time." },
+      { property: "og:title", content: "70+ Indian Vegetarian Dish Database & Macros · Aaj Kya Banaye?" },
+      { property: "og:description", content: "Search and filter Indian dishes by meal slot, cuisine, cooking type, equipment, and nutrition." },
     ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          "name": "Indian Vegetarian Dishes Database",
+          "numberOfItems": DISHES.length,
+          "itemListElement": DISHES.slice(0, 30).map((dish, index) => ({
+            "@type": "ListItem",
+            "position": index + 1,
+            "item": {
+              "@type": "MenuItem",
+              "name": dish.name,
+              "description": `${dish.name} - ${dish.kcal} kcal, ${dish.protein}g protein, ${dish.carbs}g carbs, ${dish.fat}g fat.`,
+              "nutrition": {
+                "@type": "NutritionInformation",
+                "calories": `${dish.kcal} calories`,
+                "proteinContent": `${dish.protein} g`,
+                "carbohydrateContent": `${dish.carbs} g`,
+                "fatContent": `${dish.fat} g`
+              },
+              "suitableForDiet": "https://schema.org/VegetarianDiet"
+            }
+          }))
+        })
+      }
+    ]
   }),
   component: DatabasePage,
 });

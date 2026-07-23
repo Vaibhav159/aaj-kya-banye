@@ -29,10 +29,10 @@ import { Link } from "@tanstack/react-router";
 export const Route = createFileRoute("/history")({
   head: () => ({
     meta: [
-      { title: "History · Aaj Kya Banaye?" },
-      { name: "description", content: "See every meal you've logged with a 42-day adherence heatmap and top dishes." },
-      { property: "og:title", content: "History · Aaj Kya Banaye?" },
-      { property: "og:description", content: "Your meal-logging history and adherence." },
+      { title: "Meal History & Streak Analytics · Aaj Kya Banaye?" },
+      { name: "description", content: "Track meal logging history, streak counts, daily macro adherence heatmaps, and dish statistics for your Indian vegetarian diet plan." },
+      { property: "og:title", content: "Meal History & Streak Analytics · Aaj Kya Banaye?" },
+      { property: "og:description", content: "Analytics, streaks, and adherence heatmaps for your meal plan." },
     ],
   }),
   component: HistoryPage,

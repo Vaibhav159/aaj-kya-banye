@@ -95,7 +95,7 @@ Keyboard navigation, focus states, semantic HTML, screen reader support, `prefer
 - Cloudflare Workers API for live calendar feeds (`src/lib/calendar-server.ts`)
 
 ## Deployment
-- **GitHub Pages** (SPA mode, 404.html fallback)
+- **GitHub Pages**: [https://vaibhav159.github.io/aaj-kya-banye/](https://vaibhav159.github.io/aaj-kya-banye/) (SPA mode, 404.html fallback)
 - GitHub Actions for CI/CD
 
 ---
