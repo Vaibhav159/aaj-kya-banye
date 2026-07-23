@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SnacksRouteImport } from './routes/snacks'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RulesRouteImport } from './routes/rules'
 import { Route as PlannerRouteImport } from './routes/planner'
@@ -24,11 +23,6 @@ import { Route as ApiCalendarRouteImport } from './routes/api.calendar'
 const SnacksRoute = SnacksRouteImport.update({
   id: '/snacks',
   path: '/snacks',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -86,7 +80,6 @@ export interface FileRoutesByFullPath {
   '/planner': typeof PlannerRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/snacks': typeof SnacksRoute
   '/api/calendar': typeof ApiCalendarRoute
 }
@@ -99,7 +92,6 @@ export interface FileRoutesByTo {
   '/planner': typeof PlannerRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/snacks': typeof SnacksRoute
   '/api/calendar': typeof ApiCalendarRoute
 }
@@ -113,7 +105,6 @@ export interface FileRoutesById {
   '/planner': typeof PlannerRoute
   '/rules': typeof RulesRoute
   '/settings': typeof SettingsRoute
-  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/snacks': typeof SnacksRoute
   '/api/calendar': typeof ApiCalendarRoute
 }
@@ -128,7 +119,6 @@ export interface FileRouteTypes {
     | '/planner'
     | '/rules'
     | '/settings'
-    | '/sitemap.xml'
     | '/snacks'
     | '/api/calendar'
   fileRoutesByTo: FileRoutesByTo
@@ -141,7 +131,6 @@ export interface FileRouteTypes {
     | '/planner'
     | '/rules'
     | '/settings'
-    | '/sitemap.xml'
     | '/snacks'
     | '/api/calendar'
   id:
@@ -154,7 +143,6 @@ export interface FileRouteTypes {
     | '/planner'
     | '/rules'
     | '/settings'
-    | '/sitemap.xml'
     | '/snacks'
     | '/api/calendar'
   fileRoutesById: FileRoutesById
@@ -168,7 +156,6 @@ export interface RootRouteChildren {
   PlannerRoute: typeof PlannerRoute
   RulesRoute: typeof RulesRoute
   SettingsRoute: typeof SettingsRoute
-  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SnacksRoute: typeof SnacksRoute
   ApiCalendarRoute: typeof ApiCalendarRoute
 }
@@ -180,13 +167,6 @@ declare module '@tanstack/react-router' {
       path: '/snacks'
       fullPath: '/snacks'
       preLoaderRoute: typeof SnacksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -264,7 +244,6 @@ const rootRouteChildren: RootRouteChildren = {
   PlannerRoute: PlannerRoute,
   RulesRoute: RulesRoute,
   SettingsRoute: SettingsRoute,
-  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SnacksRoute: SnacksRoute,
   ApiCalendarRoute: ApiCalendarRoute,
 }

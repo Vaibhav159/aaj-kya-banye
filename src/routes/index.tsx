@@ -190,7 +190,7 @@ function MealCard({
           <button onClick={onDetails} className="flex flex-1 items-start gap-3 text-left min-w-0">
             <span className="text-4xl leading-none shrink-0">{dish.emoji}</span>
             <div className="min-w-0 flex-1">
-              <h3 className="font-display text-xl font-semibold truncate">{dish.name}</h3>
+              <h2 className="font-display text-xl font-semibold truncate">{dish.name}</h2>
               <p className="text-xs text-muted-foreground mt-0.5">{dish.kcal} kcal · tap for details</p>
             </div>
           </button>
@@ -640,7 +640,7 @@ function RecentStrip({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="font-display text-2xl">Last 7 days</CardTitle>
-        <Link to="/history" className="text-sm text-primary hover:underline">See history →</Link>
+        <Link to="/history" className="text-sm font-medium text-primary hover:underline">See history →</Link>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-7 gap-1.5">

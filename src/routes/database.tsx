@@ -421,7 +421,7 @@ function DishForm({
     <Card className="border-2 border-primary/20">
       <CardContent className="space-y-4 p-5">
         <div className="flex items-center justify-between border-b pb-2">
-          <h3 className="font-semibold text-lg">{initialDish ? "Edit Dish" : "Add New Dish"}</h3>
+          <h2 className="font-semibold text-lg">{initialDish ? "Edit Dish" : "Add New Dish"}</h2>
           {onCancel && (
             <Button variant="ghost" size="sm" onClick={onCancel}>
               Cancel

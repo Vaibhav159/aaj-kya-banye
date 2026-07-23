@@ -1,5 +1,5 @@
 // Thali Service Worker — 100% Offline Cache Support
-const CACHE_NAME = "thali-v1";
+const CACHE_NAME = "thali-v2";
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -33,7 +33,30 @@ self.addEventListener("fetch", (event) => {
   // Only handle GET requests
   if (event.request.method !== "GET") return;
 
-  // Stale-while-revalidate strategy for maximum responsiveness and offline fallback
+  const url = new URL(event.request.url);
+
+  // Cache-First strategy for immutable hashed build assets (/assets/*) and Google Fonts
+  if (url.pathname.includes("/assets/") || url.hostname.includes("fonts.g")) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+        return fetch(event.request).then((networkResponse) => {
+          if (networkResponse && (networkResponse.status === 200 || networkResponse.type === "opaque")) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
+        });
+      })
+    );
+    return;
+  }
+
+  // Stale-while-revalidate strategy for HTML and other dynamic requests
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request)
@@ -47,7 +70,6 @@ self.addEventListener("fetch", (event) => {
           return networkResponse;
         })
         .catch(() => {
-          // If offline and request failed, return cached fallback or index
           return cachedResponse || caches.match("./index.html");
         });
 
