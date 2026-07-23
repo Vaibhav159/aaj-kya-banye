@@ -205,7 +205,7 @@ function MealCard({
 
         <div className="flex flex-wrap gap-1.5 items-center">
           {cuisineName && (
-            <Badge variant="default" className="text-[10px] bg-amber-600 dark:bg-amber-700 py-0">
+            <Badge variant="default" className="text-[10px] bg-amber-950 text-amber-50 dark:bg-amber-950 dark:text-amber-100 py-0 border border-amber-800">
               🗺️ {cuisineName}
             </Badge>
           )}
@@ -408,15 +408,15 @@ function RuleBadgePopover({
       <PopoverTrigger asChild>
         <button
           type="button"
+          aria-label={`Rule status: ${rule.label} - ${check.passed ? "Passed" : "Violated"}`}
           onMouseEnter={() => setOpen(true)}
           onMouseLeave={() => setOpen(false)}
           onClick={() => setOpen((prev) => !prev)}
-          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium border-0 cursor-pointer hover:opacity-80 transition-opacity select-none ${
+          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold border cursor-pointer hover:opacity-90 transition-opacity select-none ${
             check.passed
-              ? "bg-success/15 text-success dark:bg-green-900/30 dark:text-green-400"
-              : "bg-destructive/15 text-destructive dark:bg-red-900/30 dark:text-red-400"
+              ? "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-200 dark:border-emerald-800"
+              : "bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/70 dark:text-rose-200 dark:border-rose-800"
           }`}
-          style={{ color: check.passed ? "var(--color-success)" : "var(--color-destructive)" }}
         >
           {check.passed ? "✓" : "!"} {check.detail}
         </button>
@@ -565,7 +565,7 @@ function SwapList({
 
       {q.trim() === "" ? (
         <div className="space-y-2">
-          <h4 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Smart Suggestions (±150 kcal)</h4>
+          <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Smart Suggestions (±150 kcal)</h3>
           {smartCandidates.length === 0 ? (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">No swap candidates match all your rules within ±150 kcal.</p>
@@ -593,7 +593,7 @@ function SwapList({
         </div>
       ) : (
         <div className="space-y-2">
-          <h4 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Search Results ({searchResults.length})</h4>
+          <h3 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Search Results ({searchResults.length})</h3>
           {searchResults.length === 0 ? (
             <p className="text-sm text-muted-foreground">No dishes matching "{q}" pass rules.</p>
           ) : (

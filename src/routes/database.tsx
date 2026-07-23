@@ -232,7 +232,7 @@ function DatabasePage() {
               className={
                 "rounded-full px-2.5 py-0.5 text-xs transition " +
                 (cuisineFilter === c.id
-                  ? "bg-amber-600 text-white font-medium dark:bg-amber-700"
+                  ? "bg-amber-800 text-amber-50 font-semibold dark:bg-amber-900 dark:text-amber-100"
                   : "bg-muted/80 text-muted-foreground hover:bg-muted")
               }
             >
@@ -287,8 +287,8 @@ function DatabasePage() {
 
                     <div className="flex flex-wrap gap-1 items-center">
                       {cuisineName && (
-                        <Badge variant="default" className="text-[10px] bg-amber-600 dark:bg-amber-700 py-0">
-                          {cuisineName}
+                        <Badge variant="default" className="text-[10px] bg-amber-950 text-amber-50 dark:bg-amber-950 dark:text-amber-100 py-0 border border-amber-800">
+                          🗺️ {cuisineName}
                         </Badge>
                       )}
                       <Badge variant="secondary" className="text-[10px] py-0">

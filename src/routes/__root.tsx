@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import appCss from "../styles.css?url";
+import logoSvg from "../../public/logo.svg?url";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
@@ -110,22 +111,24 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { property: "og:title", content: "Aaj Kya Banaye? — 42-Day Indian Vegetarian Meal Planner" },
       { property: "og:description", content: "Smart 42-day rotating Indian vegetarian meal plan with macros, instant swaps, snacks, and grocery list." },
-      { property: "og:image", content: "/icon-512.png" },
+      { property: "og:image", content: "./icon-512.png" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Aaj Kya Banaye? — Indian Vegetarian Meal Planner" },
       { name: "twitter:description", content: "Smart 42-day rotating Indian vegetarian meal planner with macro tracking and custom nutrition rules." },
-      { name: "twitter:image", content: "/icon-512.png" },
+      { name: "twitter:image", content: "./icon-512.png" },
       { name: "google-site-verification", content: "q7O2uNWrbW9e8_Cdk1kfyJd5kntd7VHh6JH_9M-QWdI" },
     ],
     links: [
-      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "manifest", href: "./manifest.webmanifest" },
       {
         rel: "stylesheet",
         href: appCss,
       },
-      { rel: "icon", href: "/logo.svg", type: "image/svg+xml" },
-      { rel: "alternate icon", href: "/favicon.ico", type: "image/x-icon" },
-      { rel: "apple-touch-icon", href: "/icon-192.png" },
+      { rel: "icon", href: logoSvg, type: "image/svg+xml" },
+      { rel: "alternate icon", href: "./favicon.ico", type: "image/x-icon" },
+      { rel: "apple-touch-icon", href: "./icon-192.png" },
+      { rel: "dns-prefetch", href: "https://fonts.googleapis.com" },
+      { rel: "dns-prefetch", href: "https://fonts.gstatic.com" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -474,12 +477,14 @@ function SiteHeader({ onSearchClick }: { onSearchClick: () => void }) {
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto grid grid-cols-[1fr_auto_auto] md:grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-3">
         <Link to="/" className="flex min-w-0 items-center gap-2.5">
-          <img src="/logo.svg" alt="Aaj Kya Banaye Logo" className="h-9 w-9 shrink-0 drop-shadow-sm" />
+          <img src={logoSvg} alt="Aaj Kya Banaye Logo" className="h-9 w-9 shrink-0 drop-shadow-sm" />
           <span className="truncate font-display text-xl font-semibold">Aaj Kya Banaye?</span>
         </Link>
 
         {/* Global Search trigger button */}
         <button
+          type="button"
+          aria-label="Search dishes and snacks"
           onClick={onSearchClick}
           className="flex items-center gap-2 rounded-full border border-border bg-secondary/50 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground md:max-w-xs md:w-full ml-auto md:ml-4 select-none"
         >
