@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
@@ -64,9 +63,6 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -110,7 +106,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "author", content: "Aaj Kya Banaye?" },
       { property: "og:title", content: "Aaj Kya Banaye? — Indian Vegetarian Meal Planner" },
       { property: "og:description", content: "42-day Indian vegetarian meal plan with macros, swaps and grocery aggregation." },
-      { property: "og:type", content: "website" },
+      { name: "google-site-verification", content: "q7O2uNWrbW9e8_Cdk1kfyJd5kntd7VHh6JH_9M-QWdI" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [

@@ -42,7 +42,7 @@ No accounts required by default. All data is saved locally in `localStorage` fir
 | Icons | Lucide React |
 | Fonts | Inter + Fraunces |
 | State | Custom hooks + localStorage |
-| Package manager | Bun |
+| Package manager | npm |
 | Deployment | GitHub Pages (GitHub Actions) |
 
 ---
