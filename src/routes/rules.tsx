@@ -177,7 +177,7 @@ function RuleRow({
       if (currentField === "maxKcal") return ["300", "400", "450", "500", "600", "700", "800"];
       if (currentField === "minDaysBetweenRepeat") return ["1", "2", "3", "4", "5", "6", "7"];
       if (currentField === "maxKcalDifference") return ["-100", "-50", "0", "50", "100", "150", "200"];
-      if (currentField === "tags") return ["dal,legume", "sweet", "light", "pizza", "paratha", "fried-breakfast", "leafy"];
+      if (currentField === "tags") return ["dal,legume", "sweet", "light", "heavy", "high-protein", "paneer", "soya", "pizza", "paratha", "fried-breakfast", "leafy"];
       return (RULE_FIELD_OPTIONS[currentField as keyof typeof RULE_FIELD_OPTIONS] || []) as string[];
     };
 
@@ -394,7 +394,7 @@ function RuleForm({ onAdd }: { onAdd: (r: Omit<CustomRule, "id">) => void }) {
     if (currentField === "maxKcal") return ["300", "400", "450", "500", "600", "700", "800"];
     if (currentField === "minDaysBetweenRepeat") return ["1", "2", "3", "4", "5", "6", "7"];
     if (currentField === "maxKcalDifference") return ["-100", "-50", "0", "50", "100", "150", "200"];
-    if (currentField === "tags") return ["dal,legume", "sweet", "light", "pizza", "paratha", "fried-breakfast", "leafy"];
+    if (currentField === "tags") return ["dal,legume", "sweet", "light", "heavy", "high-protein", "paneer", "soya", "pizza", "paratha", "fried-breakfast", "leafy"];
     return (RULE_FIELD_OPTIONS[currentField as keyof typeof RULE_FIELD_OPTIONS] || []) as string[];
   };
 

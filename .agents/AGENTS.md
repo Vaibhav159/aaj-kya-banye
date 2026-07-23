@@ -114,7 +114,7 @@ src/
 │
 ├── lib/                 # ALL business logic
 │   ├── store.ts         # State hooks: profile, cycle, overrides, meal log, custom dishes
-│   ├── dishes.ts        # Dish database (73 dishes), types, helpers
+│   ├── dishes.ts        # Dish database (150 dishes), types, helpers
 │   ├── plan.ts          # 42-day static base plan (hardcoded dish grid)
 │   ├── plan-shuffler.ts # Constraint solver: backtracking + MRV + hill-climbing
 │   ├── rules.ts         # Rule checker (checkDay, isSwapAllowed) for existing plans
@@ -192,7 +192,7 @@ interface Dish {
   protein: number;      // grams
   carbs: number;        // grams
   fat: number;          // grams
-  tags: DishTag[];      // "pizza" | "paratha" | "fried-breakfast" | "dal" | "legume" | "leafy" | "sweet" | "light"
+  tags: DishTag[];      // "pizza" | "paratha" | "fried-breakfast" | "dal" | "legume" | "leafy" | "sweet" | "light" | "heavy" | "medium" | "high-protein" | "paneer" | "soya" | "potato" | "rice" | "flour" | "pasta" | "veg" | "south-indian" | "gujarati" | "maharashtrian" | "indo-chinese" | "continental" | "street-food" | "soup" | "salad" | "chana-rajma" | "kadhi" | "khichdi" | "poha-upma"
   ingredients: Ingredient[];
   cuisine?: Cuisine;
   cookingType?: CookingType;
