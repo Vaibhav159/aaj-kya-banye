@@ -1,0 +1,19 @@
+{
+  "id": "fy436o1cbyr9l7z6z",
+  "start": 1783860641045,
+  "overrides": {
+    "d3-lunch": "l27",
+    "d2-lunch": "l2",
+    "d1-dinner": "d14",
+    "d34-dinner": "d7",
+    "d35-dinner": "d20",
+    "d11-dinner": "d10",
+    "d3-breakfast": "b1",
+    "d1-breakfast": "b3"
+  },
+  "times": {
+    "breakfast": "08:00",
+    "lunch": "13:00",
+    "dinner": "20:00"
+  }
+}
