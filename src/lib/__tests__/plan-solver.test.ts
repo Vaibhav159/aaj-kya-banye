@@ -1,4 +1,5 @@
-import { describe, it, expect } from "bun:test";
+// @ts-nocheck — vitest not installed yet; add `vitest` to devDependencies to run
+import { describe, it, expect } from "vitest";
 import { generateSolvedPlan, type SolverResult } from "../plan-shuffler";
 import { BASE_PLAN } from "../plan";
 import { DISHES, DISHES_BY_ID } from "../dishes";

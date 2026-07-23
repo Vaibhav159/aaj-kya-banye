@@ -115,10 +115,10 @@ src/
 ├── lib/                 # ALL business logic
 │   ├── store.ts         # State hooks: profile, cycle, overrides, meal log, custom dishes
 │   ├── dishes.ts        # Dish database (73 dishes), types, helpers
-│   ├── plan.ts          # 42-day plan generation algorithm
-│   ├── plan-shuffler.ts # Shuffle & rotate plan algorithm
-│   ├── rules.ts         # 8 built-in nutrition rules + rule checker
-│   ├── custom-rules.ts  # User-configurable rules engine
+│   ├── plan.ts          # 42-day static base plan (hardcoded dish grid)
+│   ├── plan-shuffler.ts # Constraint solver: backtracking + MRV + hill-climbing
+│   ├── rules.ts         # Rule checker (checkDay, isSwapAllowed) for existing plans
+│   ├── custom-rules.ts  # Rules engine, types, classifyRule, checkFeasibility, countMatchingDishes
 │   ├── grocery.ts       # Ingredient aggregation by category
 │   ├── snacks.ts        # 18 snacks with craving-based filtering
 │   ├── ical.ts          # iCal (.ics) generation
@@ -126,7 +126,9 @@ src/
 │   ├── share-image.ts   # Canvas drawing utility for weekly sharing image
 │   ├── calendar-server.ts  # Cloudflare calendar feed sync
 │   ├── supabase.ts      # Supabase client initialization
-│   └── utils.ts         # cn() utility
+│   ├── utils.ts         # cn() utility
+│   └── __tests__/
+│       └── plan-solver.test.ts  # Constraint solver tests (vitest)
 │
 ├── routes/              # TanStack Router file-based routes
 │   ├── __root.tsx       # Root layout: header, footer, bottom nav, providers
