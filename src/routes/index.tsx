@@ -320,7 +320,6 @@ function MealCard({
   onSwap: () => void;
   onDetails: () => void;
   status: "eaten" | "skipped" | undefined;
-  onToggle: (s: "eaten" | "skipped" | null) => void;
 }) {
   const meta = SLOT_META[slot];
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -328,96 +327,108 @@ function MealCard({
   const base = getDishBase(dish);
   const cuisineName = dish.cuisine ? CUISINE_LABELS[dish.cuisine] : null;
 
+  // ponytail: filter out redundant badges (light/quick/base) when kcal and prepMinutes are displayed in text meta. ceiling: max 2 highlight badges per card to avoid visual clutter; full tag details are accessible in dish detail modal.
+  const highlightBadges = useMemo(() => {
+    const list: { label: string; variant: "protein" | "airfryer" | "paneer" }[] = [];
+    if (dish.protein >= 20) list.push({ label: "High Protein", variant: "protein" });
+    if (dish.equipment?.includes("airfryer") || dish.tags.includes("airfryer" as any)) list.push({ label: "Air Fryer", variant: "airfryer" });
+    else if (dish.tags.includes("paneer")) list.push({ label: "Paneer", variant: "paneer" });
+    return list;
+  }, [dish]);
+
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-center justify-between border-b border-border bg-secondary/60 px-5 py-3">
+    <Card className="overflow-hidden flex flex-col h-full">
+      <div className="flex items-center justify-between border-b border-border bg-secondary/40 px-5 py-3 shrink-0">
         <div className="flex items-center gap-2 text-sm font-medium text-secondary-foreground">
           <span>{meta.emoji}</span> {meta.label}
         </div>
         <span className="text-xs text-muted-foreground">{meta.time}</span>
       </div>
-      <CardContent className="space-y-4 p-5">
-        <div className="flex items-start justify-between gap-2">
-          <button onClick={onDetails} className="flex flex-1 items-start gap-3 text-left min-w-0">
-            <span className="text-4xl leading-none shrink-0">{dish.emoji}</span>
-            <div className="min-w-0 flex-1">
-              <h2 className="font-display text-xl font-semibold truncate">{dish.name}</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">{dish.kcal} kcal · tap for details</p>
-            </div>
-          </button>
-          <button
-            onClick={() => toggleFavorite(dish.id)}
-            className={`p-1.5 rounded-full transition-colors ${fav ? "text-rose-600 bg-rose-50 dark:bg-rose-950/30" : "text-muted-foreground hover:text-rose-500"}`}
-            title={fav ? "Remove favorite" : "Mark favorite"}
-          >
-            <Heart className={`h-4 w-4 ${fav ? "fill-current" : ""}`} />
-          </button>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5 items-center">
-          {cuisineName && (
-            <Badge variant="default" className="text-[10px] bg-amber-950 text-amber-50 dark:bg-amber-900/50 dark:text-amber-200 py-0 border border-amber-800 dark:border-amber-700/60">
-              🗺️ {cuisineName}
-            </Badge>
-          )}
-          <Badge variant="secondary" className="text-[10px] font-medium py-0">
-            🍞 {base}
-          </Badge>
-          {getDishBadges(dish).map((badge, idx) => (
-            <Badge
-              key={idx}
-              variant="outline"
-              className={`text-[10px] py-0 ${
-                badge.variant === "protein"
-                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-                  : badge.variant === "light"
-                    ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30"
-                    : badge.variant === "airfryer"
-                      ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30"
-                      : badge.variant === "paneer"
-                        ? "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/30"
-                        : ""
-              }`}
+      <CardContent className="flex flex-1 flex-col justify-between p-5 space-y-4">
+        {/* Top Section: Title, Subtitle, and Optional Badges */}
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <button onClick={onDetails} className="flex flex-1 items-start gap-3 text-left min-w-0 group">
+              <span className="text-4xl leading-none shrink-0 transition-transform group-hover:scale-105">{dish.emoji}</span>
+              <div className="min-w-0 flex-1">
+                <h2 className="font-display text-xl font-semibold truncate group-hover:text-primary transition-colors">{dish.name}</h2>
+                <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                  <span className="font-semibold text-foreground">{dish.kcal} kcal</span>
+                  {dish.prepMinutes ? <span> · {dish.prepMinutes} mins</span> : null}
+                  {cuisineName ? <span> · {cuisineName}</span> : null}
+                </div>
+              </div>
+            </button>
+            <button
+              onClick={() => toggleFavorite(dish.id)}
+              className={`p-1.5 rounded-full transition-colors ${fav ? "text-rose-600 bg-rose-50 dark:bg-rose-950/30" : "text-muted-foreground hover:text-rose-500"}`}
+              title={fav ? "Remove favorite" : "Mark favorite"}
             >
-              {badge.label}
-            </Badge>
-          ))}
+              <Heart className={`h-4 w-4 ${fav ? "fill-current" : ""}`} />
+            </button>
+          </div>
+
+          {highlightBadges.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 items-center">
+              {highlightBadges.map((badge, idx) => (
+                <Badge
+                  key={idx}
+                  variant="outline"
+                  className={`text-[10px] py-0 font-medium ${
+                    badge.variant === "protein"
+                      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                      : badge.variant === "airfryer"
+                        ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                        : badge.variant === "paneer"
+                          ? "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/30"
+                          : ""
+                  }`}
+                >
+                  {badge.label}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-3 gap-2 text-center text-xs">
-          <Macro label="Protein" value={dish.protein} />
-          <Macro label="Carbs" value={dish.carbs} />
-          <Macro label="Fat" value={dish.fat} />
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <Button
-            variant={status === "eaten" ? "default" : "outline"}
-            size="sm"
-            onClick={() => onToggle(status === "eaten" ? null : "eaten")}
-          >
-            {status === "eaten" ? "✓ Eaten" : "Ate it"}
-          </Button>
-          <Button
-            variant={status === "skipped" ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => onToggle(status === "skipped" ? null : "skipped")}
-          >
-            {status === "skipped" ? "Skipped" : "Skip"}
-          </Button>
-          <Button variant="outline" size="sm" onClick={onSwap}>Swap</Button>
+        {/* Bottom Section: Pinned to bottom via mt-auto for 100% horizontal alignment across cards */}
+        <div className="mt-auto space-y-3 pt-2">
+          <div className="grid grid-cols-3 divide-x divide-border/50 rounded-lg bg-muted/40 py-2.5 text-center text-xs">
+            <div>
+              <div className="text-sm font-semibold text-foreground">{dish.protein}g</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Protein</div>
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-foreground">{dish.carbs}g</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Carbs</div>
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-foreground">{dish.fat}g</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Fat</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              variant={status === "eaten" ? "default" : "outline"}
+              size="sm"
+              className={status === "eaten" ? "bg-emerald-600 hover:bg-emerald-700 text-white border-transparent" : ""}
+              onClick={() => onToggle(status === "eaten" ? null : "eaten")}
+            >
+              {status === "eaten" ? "✓ Eaten" : "Ate it"}
+            </Button>
+            <Button
+              variant={status === "skipped" ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => onToggle(status === "skipped" ? null : "skipped")}
+            >
+              {status === "skipped" ? "Skipped" : "Skip"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={onSwap}>Swap</Button>
+          </div>
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-
-function Macro({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-md bg-muted px-2 py-2">
-      <div className="text-sm font-semibold text-foreground">{value}g</div>
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-    </div>
   );
 }
 

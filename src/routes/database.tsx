@@ -271,7 +271,9 @@ function DatabasePage() {
                             )}
                           </div>
                           <div className="text-xs text-muted-foreground truncate mt-0.5">
-                            {d.slots.join(" · ")} · <span className="font-medium text-foreground">{d.kcal} kcal</span>
+                            <span className="font-semibold text-foreground">{d.kcal} kcal</span> · {d.slots.join(", ")}
+                            {d.prepMinutes ? ` · ${d.prepMinutes}m` : ""}
+                            {cuisineName ? ` · ${cuisineName}` : ""}
                           </div>
                         </div>
                       </button>
@@ -286,17 +288,11 @@ function DatabasePage() {
                     </div>
 
                     <div className="flex flex-wrap gap-1 items-center">
-                      {cuisineName && (
-                        <Badge variant="default" className="text-[10px] bg-amber-950 text-amber-50 dark:bg-amber-900/50 dark:text-amber-200 py-0 border border-amber-800 dark:border-amber-700/60">
-                          🗺️ {cuisineName}
-                        </Badge>
-                      )}
-                      <Badge variant="secondary" className="text-[10px] py-0">
+                      <Badge variant="secondary" className="text-[10px] py-0 font-normal">
                         {base}
                       </Badge>
-                      {d.prepMinutes && <Badge variant="outline" className="text-[10px] py-0">⏱ {d.prepMinutes}m</Badge>}
                       {typeof d.spiceLevel === "number" && d.spiceLevel > 0 && (
-                        <Badge variant="outline" className="text-[10px] py-0">{"🌶".repeat(d.spiceLevel)}</Badge>
+                        <Badge variant="outline" className="text-[10px] py-0 border-amber-500/30 text-amber-700 dark:text-amber-300">{"🌶".repeat(d.spiceLevel)}</Badge>
                       )}
                     </div>
 
