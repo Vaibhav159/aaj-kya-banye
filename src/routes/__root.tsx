@@ -177,7 +177,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -622,6 +622,7 @@ function SiteHeader({
         {/* Theme Mode Toggle button */}
         <button
           type="button"
+          suppressHydrationWarning
           aria-label={`Current theme: ${theme}. Click to change.`}
           title={`Theme: ${theme.toUpperCase()} (Click to toggle)`}
           onClick={cycleTheme}
