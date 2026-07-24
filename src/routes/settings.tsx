@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DEFAULT_PROFILE, useCycleStart, useProfile, type Profile, syncAllData, readLS, calculateDailyGoals, type ActivityLevel, type GoalPace } from "@/lib/store";
+import { DEFAULT_PROFILE, useCycleStart, useProfile, type Profile, syncAllData, readLS, calculateDailyGoals, type ActivityLevel, type GoalPace, CYCLE_PRESETS, formatCycleDuration } from "@/lib/store";
 import { buildIcs, downloadIcs } from "@/lib/ical";
 import { applyOverrides, currentDayIndex, useOverrides } from "@/lib/store";
 import { saveCalendarFeed } from "@/lib/calendar-server";
@@ -30,11 +30,21 @@ export const Route = createFileRoute("/settings")({
 function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { profile, save, hydrated } = useProfile();
-  const { start, reset } = useCycleStart();
+  const { start, length, setStart, setLength, reset } = useCycleStart();
   const { overrides } = useOverrides();
   const [form, setForm] = useState<Profile>(DEFAULT_PROFILE);
   const [feedId, setFeedId] = useState("");
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
+  const dayIdx = currentDayIndex(start, Date.now(), length);
+  const currentDayNum = dayIdx + 1;
+  const progressPct = Math.round((currentDayNum / length) * 100);
+
+  const startDateObj = start ? new Date(start) : new Date();
+  const startDateIso = `${startDateObj.getFullYear()}-${String(startDateObj.getMonth() + 1).padStart(2, "0")}-${String(startDateObj.getDate()).padStart(2, "0")}`;
+  const startDateFormatted = startDateObj.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const endDateMs = (start || Date.now()) + (length - 1) * 86400000;
+  const endDateFormatted = new Date(endDateMs).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
   const [user, setUser] = useState<any>(null);
   const [syncLoading, setSyncLoading] = useState(true);
@@ -490,6 +500,196 @@ function SettingsPage() {
 
         {/* TAB 2: PREFERENCES & TIMINGS */}
         <TabsContent value="preferences" className="space-y-6 mt-0">
+          <Card className="overflow-hidden border-border/80 shadow-sm">
+            <CardHeader className="border-b border-border/40 bg-muted/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="font-display text-2xl flex items-center gap-2">
+                    <RefreshCw className="h-5 w-5 text-primary animate-spin-slow" />
+                    Meal Rotation Dashboard
+                  </CardTitle>
+                  <CardDescription>
+                    Visual rhythm & cycle duration for your rotating meal plan.
+                  </CardDescription>
+                </div>
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                  {formatCycleDuration(length)}
+                </span>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-6 space-y-6">
+              {/* LIVE ORBIT & TIMELINE BANNER */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-accent/5 to-muted/40 p-5 sm:p-6 border border-primary/20 shadow-inner space-y-5">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                  {/* SVG ORBIT RING */}
+                  <div className="relative flex items-center justify-center shrink-0">
+                    <svg className="w-28 h-28 -rotate-90 transform" viewBox="0 0 80 80">
+                      <circle
+                        cx="40"
+                        cy="40"
+                        r="34"
+                        stroke="currentColor"
+                        strokeWidth="6"
+                        className="text-muted/30"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="40"
+                        cy="40"
+                        r="34"
+                        stroke="currentColor"
+                        strokeWidth="6"
+                        strokeDasharray={213.6}
+                        strokeDashoffset={213.6 - (progressPct / 100) * 213.6}
+                        strokeLinecap="round"
+                        className="text-primary transition-all duration-700 ease-out"
+                        fill="transparent"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                      <span className="text-xl font-bold font-display leading-none">Day {currentDayNum}</span>
+                      <span className="text-[10px] text-muted-foreground mt-0.5 font-medium">of {length} days</span>
+                    </div>
+                  </div>
+
+                  {/* TIMELINE DETAILS & PROGRESS BAR */}
+                  <div className="flex-1 w-full space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-foreground flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-primary" /> Active Cycle Status
+                      </span>
+                      <span className="font-mono text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                        {progressPct}% Complete
+                      </span>
+                    </div>
+
+                    {/* Progress Bar Track */}
+                    <div className="relative w-full h-3 bg-muted/60 rounded-full overflow-hidden border border-border/40">
+                      <div
+                        className="h-full bg-gradient-to-r from-primary to-accent transition-all duration-500 rounded-full"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
+                      <span className="flex items-center gap-1 font-medium">
+                        🚩 Started: <strong className="text-foreground">{startDateFormatted}</strong>
+                      </span>
+                      <span className="flex items-center gap-1 font-medium">
+                        🔄 End / Reset: <strong className="text-foreground">{endDateFormatted}</strong>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* DURATION PRESET CARDS GRID */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-semibold flex items-center gap-1.5">
+                    <Calendar className="h-4 w-4 text-primary" /> Choose Rotation Rhythm
+                  </Label>
+                  <span className="text-xs text-muted-foreground">Select preset or enter custom days</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {CYCLE_PRESETS.map((preset) => {
+                    const isSelected = length === preset.days;
+                    return (
+                      <button
+                        key={preset.days}
+                        type="button"
+                        onClick={() => {
+                          setLength(preset.days);
+                          toast.success(`Set cycle rotation to ${preset.label} (${preset.days} days)`);
+                        }}
+                        className={`relative flex flex-col items-start p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer ${
+                          isSelected
+                            ? "bg-primary text-primary-foreground border-primary shadow-md ring-2 ring-primary/30 scale-[1.02]"
+                            : "bg-card hover:bg-accent/30 border-border hover:border-primary/40 text-card-foreground shadow-2xs hover:scale-[1.01]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <span className="text-xl">{preset.emoji}</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isSelected ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                            {preset.days}d
+                          </span>
+                        </div>
+                        <span className="font-display font-semibold text-sm leading-tight">{preset.label}</span>
+                        <span className={`text-[11px] mt-0.5 ${isSelected ? "text-primary-foreground/85" : "text-muted-foreground"}`}>
+                          {preset.tag}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* CUSTOM DURATION SLIDER & STEPPER */}
+                <div className="flex flex-wrap items-center justify-between gap-4 p-3.5 bg-muted/30 rounded-xl border border-border/50">
+                  <div className="flex items-center gap-2 text-xs font-medium">
+                    <Sliders className="h-4 w-4 text-primary" />
+                    <span>Fine-tune cycle duration:</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min={1}
+                      max={90}
+                      value={length}
+                      onChange={(e) => setLength(parseInt(e.target.value, 10) || 42)}
+                      className="w-28 sm:w-36 accent-primary cursor-pointer"
+                    />
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={365}
+                        className="w-16 h-8 text-xs text-center font-bold"
+                        value={length}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (val > 0 && val <= 365) setLength(val);
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground font-medium">days</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* START DATE & RESET CONTROLS */}
+              <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t border-border/40">
+                <div>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                    Cycle Start Date
+                  </Label>
+                  <Input
+                    type="date"
+                    value={startDateIso}
+                    onChange={(e) => {
+                      if (!e.target.value) return;
+                      const [y, m, d] = e.target.value.split("-").map(Number);
+                      setStart(new Date(y, m - 1, d, 0, 0, 0, 0).getTime());
+                      toast.success(`Cycle start date updated to ${e.target.value}`);
+                    }}
+                    className="bg-background"
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">Day 1 of your rotation begins on this date.</p>
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">
+                    Reset Counter
+                  </Label>
+                  <Button variant="outline" className="w-full justify-center gap-2 h-10 border-border/60 hover:border-primary/50" onClick={() => { reset(); toast.success("Cycle restarted at Day 1 (Today)"); }}>
+                    <RefreshCw className="h-4 w-4 text-primary" /> Snap Day 1 to Today
+                  </Button>
+                  <p className="text-[11px] text-muted-foreground mt-1">Sets today's date as Day 1 of your rotation.</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Appearance & Theme</CardTitle>
@@ -548,22 +748,6 @@ function SettingsPage() {
               <Field label="Breakfast"><Input type="time" value={form.breakfastTime} onChange={(e) => update("breakfastTime", e.target.value)} /></Field>
               <Field label="Lunch"><Input type="time" value={form.lunchTime} onChange={(e) => update("lunchTime", e.target.value)} /></Field>
               <Field label="Dinner"><Input type="time" value={form.dinnerTime} onChange={(e) => update("dinnerTime", e.target.value)} /></Field>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>42-Day Rotation Cycle</CardTitle>
-              <CardDescription>Reset your meal rotation back to Day 1 whenever you want a fresh start.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium">Reset Cycle Counter</p>
-                <p className="text-xs text-muted-foreground">Sets today as Day 1 of your 42-day meal plan.</p>
-              </div>
-              <Button variant="outline" onClick={() => { reset(); toast.success("Cycle restarted at day 1"); }}>
-                <RefreshCw className="h-4 w-4 mr-1.5" /> Restart Cycle
-              </Button>
             </CardContent>
           </Card>
         </TabsContent>

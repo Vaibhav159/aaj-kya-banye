@@ -25,8 +25,8 @@ export function SearchPlannerDialog({
   defaultDayIdx,
   defaultSlot = "breakfast",
 }: SearchPlannerDialogProps) {
-  const { start } = useCycleStart();
-  const todayIdx = currentDayIndex(start);
+  const { start, length } = useCycleStart();
+  const todayIdx = currentDayIndex(start, Date.now(), length);
   
   const [query, setQuery] = useState("");
   const [selectedSlot, setSelectedSlot] = useState<Slot>(defaultSlot);
@@ -38,7 +38,7 @@ export function SearchPlannerDialog({
   const { overrides, setOne } = useOverrides();
   const { rules: customRules } = useCustomRules();
 
-  const plan = useMemo(() => applyOverrides(overrides), [overrides]);
+  const plan = useMemo(() => applyOverrides(overrides, length), [overrides, length]);
 
   const allDishes = useMemo(() => {
     const map = new Map<string, Dish>();
@@ -71,26 +71,27 @@ export function SearchPlannerDialog({
   const ruleCheck = useMemo(() => {
     if (!selectedDish) return null;
     const testOverrides = { ...overrides, [`d${targetDay}-${selectedSlot}`]: selectedDish.id };
-    const testPlan = applyOverrides(testOverrides);
+    const testPlan = applyOverrides(testOverrides, length);
     const dayResult = checkDay(testPlan, targetDay, customRules);
     return dayResult;
-  }, [selectedDish, targetDay, selectedSlot, overrides, customRules]);
+  }, [selectedDish, targetDay, selectedSlot, overrides, customRules, length]);
 
   const handleAssign = (dish: Dish) => {
     setOne(targetDay, selectedSlot, dish.id);
-    toast.success(`Assigned ${dish.name} to Day ${targetDay + 1} (${selectedSlot})!`);
+    toast.success(`Set ${dish.name} for Day ${targetDay + 1} (${selectedSlot})`);
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-6">
-        <DialogHeader className="space-y-1">
-          <DialogTitle className="font-display text-2xl font-bold flex items-center gap-2">
-            <Search className="h-5 w-5 text-primary" /> Search-Based Meal Planning
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-4 sm:p-6 overflow-hidden">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-xl font-display flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Search & Assign Meal
           </DialogTitle>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Search from 150+ Indian dishes to plan or swap meals into your 42-day cycle with instant rule validation.
+          <DialogDescription className="text-xs">
+            Find any dish from the full catalog and place it into your rotation.
           </DialogDescription>
         </DialogHeader>
 
@@ -106,7 +107,7 @@ export function SearchPlannerDialog({
                 <SelectValue placeholder="Select Day" />
               </SelectTrigger>
               <SelectContent className="max-h-60">
-                {Array.from({ length: 42 }, (_, i) => (
+                {Array.from({ length }, (_, i) => (
                   <SelectItem key={i} value={String(i)}>
                     Day {i + 1} {i === todayIdx ? " (Today)" : ""}
                   </SelectItem>

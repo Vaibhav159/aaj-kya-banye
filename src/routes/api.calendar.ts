@@ -21,11 +21,13 @@ export const Route = createFileRoute("/api/calendar")({
           const dataStr = await fs.readFile(filePath, "utf-8");
           const feedData = JSON.parse(dataStr) as {
             start: number;
+            cycleLength?: number;
             overrides: Record<string, string>;
             times: { breakfast: string; lunch: string; dinner: string };
           };
 
-          const plan = applyOverrides(feedData.overrides);
+          const cycleLen = feedData.cycleLength || 42;
+          const plan = applyOverrides(feedData.overrides, cycleLen);
           
           // Calculate sliding day index relative to request date (today)
           const cycleStart = feedData.start;
@@ -35,7 +37,7 @@ export const Route = createFileRoute("/api/calendar")({
           const nowMidnight = new Date();
           nowMidnight.setHours(0, 0, 0, 0);
           const diff = Math.floor((nowMidnight.getTime() - startMidnight.getTime()) / msPerDay);
-          const currentIdx = ((diff % 42) + 42) % 42;
+          const currentIdx = ((diff % cycleLen) + cycleLen) % cycleLen;
 
           const icsString = buildIcs(plan, currentIdx, 30, new Date(), feedData.times);
 

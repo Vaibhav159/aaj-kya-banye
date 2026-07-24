@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DISHES_BY_ID, getDishBase, CUISINE_LABELS, type Dish } from "@/lib/dishes";
-import { applyOverrides, currentDayIndex, useCycleStart, useOverrides, useFavorites } from "@/lib/store";
+import { applyOverrides, currentDayIndex, useCycleStart, useOverrides, useFavorites, formatCycleDuration } from "@/lib/store";
 import { type DayPlan } from "@/lib/plan";
 import { shareOrCopy, weekSummary } from "@/lib/share";
 import { buildIcs, downloadIcs } from "@/lib/ical";
@@ -42,20 +42,20 @@ function dayKcal(dayIds: [string, string, string]): number {
 }
 
 function PlannerPage() {
-  const { start } = useCycleStart();
+  const { start, length } = useCycleStart();
   const { overrides, setOne, setMany } = useOverrides();
   const { rules: customRules } = useCustomRules();
-  const dayIdx = currentDayIndex(start);
-  const plan = useMemo(() => applyOverrides(overrides), [overrides]);
+  const dayIdx = currentDayIndex(start, Date.now(), length);
+  const plan = useMemo(() => applyOverrides(overrides, length), [overrides, length]);
 
   const [isShuffleOpen, setIsShuffleOpen] = useState(false);
   const [isSearchPlannerOpen, setIsSearchPlannerOpen] = useState(false);
   const [solverResult, setSolverResult] = useState<SolverResult | null>(null);
-  const [shuffleRange, setShuffleRange] = useState<"7days" | "42days">("7days");
+  const [shuffleRange, setShuffleRange] = useState<"7days" | "full">("7days");
 
   const previewPlan = solverResult?.plan ?? null;
 
-  const startShuffle = (range: "7days" | "42days") => {
+  const startShuffle = (range: "7days" | "full") => {
     setShuffleRange(range);
     const result = generateSolvedPlan(plan, range, dayIdx, customRules);
     setSolverResult(result);
@@ -65,8 +65,8 @@ function PlannerPage() {
     if (!previewPlan) return;
     const nextOverrides: Record<string, string> = { ...overrides };
     const targetIndices = shuffleRange === "7days"
-      ? Array.from({ length: 7 }, (_, i) => (dayIdx + i) % 42)
-      : Array.from({ length: 42 }, (_, i) => i);
+      ? Array.from({ length: 7 }, (_, i) => (dayIdx + i) % length)
+      : Array.from({ length }, (_, i) => i);
       
     for (const idx of targetIndices) {
       const shuffled = previewPlan[idx];
@@ -81,8 +81,8 @@ function PlannerPage() {
     const relaxedCount = solverResult?.relaxed.length ?? 0;
     toast.success(
       relaxedCount > 0
-        ? `Shuffled ${shuffleRange === "7days" ? "next 7 days" : "42-day cycle"} (${relaxedCount} rule${relaxedCount > 1 ? "s" : ""} relaxed)`
-        : `Successfully shuffled ${shuffleRange === "7days" ? "next 7 days" : "full 42-day cycle"}!`
+        ? `Shuffled ${shuffleRange === "7days" ? "next 7 days" : "full cycle"} (${relaxedCount} rule${relaxedCount > 1 ? "s" : ""} relaxed)`
+        : `Successfully shuffled ${shuffleRange === "7days" ? "next 7 days" : "full meal cycle"}!`
     );
   };
 
@@ -90,8 +90,8 @@ function PlannerPage() {
     if (!previewPlan) return [];
     const list = [];
     const targetIndices = shuffleRange === "7days"
-      ? Array.from({ length: 7 }, (_, i) => (dayIdx + i) % 42)
-      : Array.from({ length: 42 }, (_, i) => i);
+      ? Array.from({ length: 7 }, (_, i) => (dayIdx + i) % length)
+      : Array.from({ length }, (_, i) => i);
 
     for (const idx of targetIndices) {
       const original = plan[idx];
@@ -107,7 +107,7 @@ function PlannerPage() {
     return list;
   }, [previewPlan, plan, shuffleRange, dayIdx]);
 
-  const week = Array.from({ length: 7 }, (_, i) => plan[(dayIdx + i) % 42]);
+  const week = Array.from({ length: 7 }, (_, i) => plan[(dayIdx + i) % length]);
   const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const startDate = new Date();
 
@@ -335,7 +335,7 @@ function PlannerPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="font-display text-2xl">Full 42-day cycle</CardTitle>
+          <CardTitle className="font-display text-2xl">Full {formatCycleDuration(length)} cycle</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -431,13 +431,13 @@ function PlannerPage() {
               </Button>
               <Button
                 variant="outline"
-                onClick={() => startShuffle("42days")}
+                onClick={() => startShuffle("full")}
                 className="h-32 flex flex-col items-center justify-center p-4 gap-1.5 text-lg font-semibold hover:border-primary/50 group cursor-pointer whitespace-normal"
               >
                 <Shuffle className="h-6 w-6 text-muted-foreground group-hover:text-primary shrink-0" />
-                <span>Shuffle Full 42 Days</span>
+                <span>Shuffle Full Cycle ({formatCycleDuration(length)})</span>
                 <span className="text-xs font-normal text-muted-foreground text-center leading-relaxed">
-                  Re-rotate and shuffle all meals in the 42-day rotation
+                  Re-rotate and shuffle all meals in your {length}-day rotation
                 </span>
               </Button>
             </div>

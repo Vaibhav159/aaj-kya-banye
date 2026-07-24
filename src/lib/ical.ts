@@ -33,7 +33,7 @@ export function buildIcs(plan: DayPlan[], startIdx: number, days: number, startD
   ];
   const dtstamp = fmt(new Date());
   for (let i = 0; i < days; i++) {
-    const day = plan[(startIdx + i) % 42];
+    const day = plan[(startIdx + i) % plan.length];
     (["breakfast", "lunch", "dinner"] as const).forEach((slot) => {
       const dish = DISHES_BY_ID[day[slot]];
       if (!dish) return;

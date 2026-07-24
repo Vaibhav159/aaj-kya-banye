@@ -52,12 +52,12 @@ const SLOT_META: Record<Slot, { label: string; emoji: string; time: string }> = 
 
 function Dashboard() {
   const { profile } = useProfile();
-  const { start } = useCycleStart();
+  const { start, length } = useCycleStart();
   const { overrides, setOne } = useOverrides();
   const { log, setEntry } = useMealLog();
   const { rules: customRules } = useCustomRules();
-  const dayIdx = currentDayIndex(start);
-  const plan = useMemo(() => applyOverrides(overrides), [overrides]);
+  const dayIdx = currentDayIndex(start, Date.now(), length);
+  const plan = useMemo(() => applyOverrides(overrides, length), [overrides, length]);
   const today = plan[dayIdx];
 
   const [swapSlot, setSwapSlot] = useState<Slot | null>(null);
@@ -87,7 +87,7 @@ function Dashboard() {
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm uppercase tracking-wide text-muted-foreground">Day {dayIdx + 1} of 42</p>
+          <p className="text-sm uppercase tracking-wide text-muted-foreground">Day {dayIdx + 1} of {length}</p>
           <h1 className="font-display text-4xl font-semibold">Hello, {profile.name}</h1>
           <p className="mt-1 text-muted-foreground">
             Here's what you're eating today.
@@ -659,7 +659,8 @@ function RecentStrip({
   profile: Profile;
 }) {
   const slots: Slot[] = ["breakfast", "lunch", "dinner"];
-  const days = Array.from({ length: 7 }, (_, i) => (((todayIdx - (6 - i)) % 42) + 42) % 42);
+  const cycleLen = plan.length || 42;
+  const days = Array.from({ length: 7 }, (_, i) => (((todayIdx - (6 - i)) % cycleLen) + cycleLen) % cycleLen);
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">

@@ -7,6 +7,7 @@ export const saveCalendarFeed = createServerFn({ method: "POST" })
     z.object({
       id: z.string(),
       start: z.number(),
+      cycleLength: z.number().optional(),
       overrides: z.record(z.string(), z.string()),
       times: z.object({
         breakfast: z.string(),

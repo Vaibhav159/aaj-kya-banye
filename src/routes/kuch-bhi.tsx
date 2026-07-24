@@ -48,9 +48,9 @@ function slotFromClock(): Slot {
 
 function DecidePage() {
   const { rules } = useCustomRules();
-  const { start } = useCycleStart();
+  const { start, length } = useCycleStart();
   const { overrides, setOne } = useOverrides();
-  const dayIdx = currentDayIndex(start);
+  const dayIdx = currentDayIndex(start, Date.now(), length);
   const [slot, setSlot] = useState<Slot>(slotFromClock());
   const [answers, setAnswers] = useState<Record<string, boolean | null>>({});
   const [asked, setAsked] = useState<QId[]>([]);
