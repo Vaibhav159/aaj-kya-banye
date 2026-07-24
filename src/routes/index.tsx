@@ -296,10 +296,11 @@ function NutritionCard({
               {pct}%
             </text>
           </svg>
-          <div className="flex-1 space-y-3">
-            <MacroBar label="Protein" value={totals.protein} goal={profile.goalProtein} color="var(--color-primary)" />
-            <MacroBar label="Carbs" value={totals.carbs} goal={profile.goalCarbs} color="var(--color-accent)" />
-            <MacroBar label="Fat" value={totals.fat} goal={profile.goalFat} color="var(--color-success)" />
+          <div className="flex-1 space-y-2.5">
+            <MacroBar label="Calories" value={totals.kcal} goal={profile.goalKcal} unit="kcal" color="var(--color-chart-1)" />
+            <MacroBar label="Protein" value={totals.protein} goal={profile.goalProtein} unit="g" color="var(--color-primary)" />
+            <MacroBar label="Carbs" value={totals.carbs} goal={profile.goalCarbs} unit="g" color="var(--color-accent)" />
+            <MacroBar label="Fat" value={totals.fat} goal={profile.goalFat} unit="g" color="var(--color-success)" />
           </div>
         </div>
       </CardContent>
@@ -307,16 +308,16 @@ function NutritionCard({
   );
 }
 
-function MacroBar({ label, value, goal, color }: { label: string; value: number; goal: number; color: string }) {
+function MacroBar({ label, value, goal, unit = "g", color }: { label: string; value: number; goal: number; unit?: string; color: string }) {
   const pct = Math.min(100, Math.round((value / goal) * 100));
   return (
     <div>
       <div className="mb-1 flex justify-between text-sm">
         <span className="text-foreground">{label}</span>
-        <span className="text-muted-foreground">{value}g / {goal}g</span>
+        <span className="text-muted-foreground">{value}{unit} / {goal}{unit}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+        <div className="h-full rounded-full transition-all duration-300" style={{ width: `${pct}%`, background: color }} />
       </div>
     </div>
   );
