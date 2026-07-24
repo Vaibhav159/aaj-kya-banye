@@ -221,6 +221,24 @@ async function syncOverride(key: string, dishId: string) {
   }
 }
 
+export async function syncOverridesBulk(overrides: Record<string, string>) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const entries = Object.entries(overrides);
+    if (entries.length === 0) return;
+    const rows = entries.map(([key, dish_id]) => ({
+      user_id: user.id,
+      key,
+      dish_id,
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from("overrides").upsert(rows);
+  } catch (err) {
+    console.error("Bulk overrides sync error:", err);
+  }
+}
+
 async function syncMealLog(key: string, entry: LogEntry | null) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -271,6 +289,75 @@ async function syncCustomDish(dish: CustomDish, isDeleted: boolean = false) {
     }
   } catch (err) {
     console.error("Custom dish sync error:", err);
+  }
+}
+
+export async function syncMealLogsBulk(logs: Record<string, LogEntry>) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const entries = Object.entries(logs);
+    if (entries.length === 0) return;
+    const rows = entries.map(([key, entry]) => ({
+      user_id: user.id,
+      key,
+      status: entry.status,
+      logged_at: entry.at,
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from("meal_logs").upsert(rows);
+  } catch (err) {
+    console.error("Bulk meal logs sync error:", err);
+  }
+}
+
+export async function syncCustomDishesBulk(dishes: CustomDish[]) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || dishes.length === 0) return;
+    const rows = dishes.map((dish) => ({
+      id: dish.id,
+      user_id: user.id,
+      name: dish.name,
+      emoji: dish.emoji,
+      slots: dish.slots,
+      kcal: dish.kcal,
+      protein: dish.protein,
+      carbs: dish.carbs,
+      fat: dish.fat,
+      tags: dish.tags,
+      ingredients: dish.ingredients,
+      cuisine: dish.cuisine,
+      cooking_type: dish.cookingType,
+      equipment: dish.equipment,
+      prep_minutes: dish.prepMinutes,
+      spice_level: dish.spiceLevel,
+      recipe_url: dish.recipeUrl,
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from("custom_dishes").upsert(rows);
+  } catch (err) {
+    console.error("Bulk custom dishes sync error:", err);
+  }
+}
+
+export async function syncCustomRulesBulk(rules: CustomRule[]) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || rules.length === 0) return;
+    const rows = rules.map((r) => ({
+      id: r.id,
+      user_id: user.id,
+      label: r.label,
+      kind: r.kind,
+      scope: r.scope,
+      match: r.match,
+      enabled: r.enabled,
+      updated_at: new Date().toISOString(),
+    }));
+    await supabase.from("custom_rules").upsert(rows);
+  } catch (err) {
+    console.error("Bulk custom rules sync error:", err);
   }
 }
 
@@ -358,16 +445,16 @@ export async function syncAllData() {
       });
       window.localStorage.setItem(OVERRIDES_KEY, JSON.stringify(mergedOverrides));
       
+      const unSynced: Record<string, string> = {};
       for (const [k, v] of Object.entries(localOverrides)) {
         if (!remoteOverrides.some((r: any) => r.key === k)) {
-          await syncOverride(k, v);
+          unSynced[k] = v;
         }
       }
+      if (Object.keys(unSynced).length > 0) await syncOverridesBulk(unSynced);
     } else {
       const localOverrides = readLS<Overrides>(OVERRIDES_KEY, {});
-      for (const [k, v] of Object.entries(localOverrides)) {
-        await syncOverride(k, v);
-      }
+      if (Object.keys(localOverrides).length > 0) await syncOverridesBulk(localOverrides);
     }
 
     // 4. Sync Meal Logs
@@ -391,17 +478,17 @@ export async function syncAllData() {
       });
       window.localStorage.setItem(LOG_KEY, JSON.stringify(mergedLogs));
 
+      const unSynced: Record<string, LogEntry> = {};
       for (const [k, v] of Object.entries(localLogs)) {
         const match = remoteLogs.find((r: any) => r.key === k);
         if (!match || v.at > Number(match.logged_at)) {
-          await syncMealLog(k, v);
+          unSynced[k] = v;
         }
       }
+      if (Object.keys(unSynced).length > 0) await syncMealLogsBulk(unSynced);
     } else {
       const localLogs = readLS<MealLog>(LOG_KEY, {});
-      for (const [k, v] of Object.entries(localLogs)) {
-        await syncMealLog(k, v);
-      }
+      if (Object.keys(localLogs).length > 0) await syncMealLogsBulk(localLogs);
     }
 
     // 5. Sync Custom Dishes
@@ -446,16 +533,11 @@ export async function syncAllData() {
       });
       window.localStorage.setItem(CUSTOM_DISHES_KEY, JSON.stringify(mergedDishes));
 
-      for (const d of localCustomDishes) {
-        if (!remoteCustomDishes.some((r: any) => r.id === d.id)) {
-          await syncCustomDish(d);
-        }
-      }
+      const unSynced = localCustomDishes.filter(d => !remoteCustomDishes.some((r: any) => r.id === d.id));
+      if (unSynced.length > 0) await syncCustomDishesBulk(unSynced);
     } else {
       const localCustomDishes = readLS<CustomDish[]>(CUSTOM_DISHES_KEY, []);
-      for (const d of localCustomDishes) {
-        await syncCustomDish(d);
-      }
+      if (localCustomDishes.length > 0) await syncCustomDishesBulk(localCustomDishes);
     }
 
     // 6. Sync Custom Rules
@@ -489,34 +571,11 @@ export async function syncAllData() {
       });
       window.localStorage.setItem("thali:customRules", JSON.stringify(mergedRules));
 
-      for (const r of localRules) {
-        if (!remoteCustomRules.some((remote: any) => remote.id === r.id)) {
-          await supabase.from("custom_rules").upsert({
-            id: r.id,
-            user_id: user.id,
-            label: r.label,
-            kind: r.kind,
-            scope: r.scope,
-            match: r.match,
-            enabled: r.enabled,
-            updated_at: new Date().toISOString(),
-          });
-        }
-      }
+      const unSynced = localRules.filter(r => !remoteCustomRules.some((remote: any) => remote.id === r.id));
+      if (unSynced.length > 0) await syncCustomRulesBulk(unSynced);
     } else {
       const localRules = readLS<CustomRule[]>("thali:customRules", EXAMPLE_RULES);
-      for (const r of localRules) {
-        await supabase.from("custom_rules").upsert({
-          id: r.id,
-          user_id: user.id,
-          label: r.label,
-          kind: r.kind,
-          scope: r.scope,
-          match: r.match,
-          enabled: r.enabled,
-          updated_at: new Date().toISOString(),
-        });
-      }
+      if (localRules.length > 0) await syncCustomRulesBulk(localRules);
     }
 
     window.dispatchEvent(new Event("thali:sync"));
@@ -651,9 +710,7 @@ export function useOverrides() {
       if (typeof window !== "undefined") window.localStorage.setItem(OVERRIDES_KEY, JSON.stringify(next));
       return next;
     });
-    Object.entries(newOverrides).forEach(([key, dishId]) => {
-      syncOverride(key, dishId);
-    });
+    syncOverridesBulk(newOverrides);
   }, []);
 
   const clearAll = useCallback(() => {
