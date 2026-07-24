@@ -269,10 +269,12 @@ localStorage keys are prefixed with `thali:`.
 
 # 📱 Responsive Design
 
-- Mobile-first with bottom navigation (`BottomNav`)
-- Desktop gets horizontal header nav
+- Mobile-first with bottom navigation (`BottomNav`) and full-screen mobile menu drawer (`Sheet`)
+- **100% Mobile Parity Mandatory**: Every desktop route (Today, Planner, Kuch Bhi, History, Snacks, Grocery, Dishes, Rules, Settings) and quick action (Setup Wizard, Search, Theme toggle) MUST remain accessible on mobile viewports via `BottomNav` or the `SiteHeader` mobile menu drawer
+- Desktop gets horizontal header nav (`md:flex`)
 - Main content has `pb-20 md:pb-0` to account for bottom nav
 - Use Flexbox/Grid, avoid fixed widths
+
 
 ---
 

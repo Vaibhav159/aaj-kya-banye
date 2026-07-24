@@ -42,6 +42,8 @@ Prioritized backlog. Agents: build from top down when asked "what's next." Updat
 - ✅ Make "Generate Plan" less hidden (prominent secondary button on planner header)
 - ✅ Add Base & Cuisine badges (e.g., Roti / Rice / Dal & North Indian / South Indian) everywhere
 - ✅ PWA support (service worker, installable, offline cache)
+- ✅ Mobile navigation & desktop feature parity (mobile menu sheet drawer & full bottom navigation)
+
 
 
 ### P5 - Good to have 

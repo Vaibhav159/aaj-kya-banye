@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useProfile, DEFAULT_PROFILE } from "@/lib/store";
+import { useProfile, DEFAULT_PROFILE, calculateDailyGoals, type ActivityLevel, type GoalPace } from "@/lib/store";
 import { useTheme, type ThemeMode } from "@/lib/theme";
 import { Sparkles, ArrowRight, ArrowLeft, Check, Sun, Moon, Monitor, Clock, Target, User } from "lucide-react";
 import { toast } from "sonner";
@@ -24,6 +24,11 @@ export function OnboardingDialog({ open: controlledOpen, onOpenChange }: Onboard
   const [name, setName] = useState("");
   const [weightKg, setWeightKg] = useState(70);
   const [targetKg, setTargetKg] = useState(68);
+  const [heightCm, setHeightCm] = useState(170);
+  const [age, setAge] = useState(28);
+  const [gender, setGender] = useState<"male" | "female">("male");
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>("light");
+  const [pace, setPace] = useState<GoalPace>("moderate");
   const [goalKcal, setGoalKcal] = useState(2000);
   const [breakfastTime, setBreakfastTime] = useState("08:00");
   const [lunchTime, setLunchTime] = useState("13:00");
@@ -48,6 +53,11 @@ export function OnboardingDialog({ open: controlledOpen, onOpenChange }: Onboard
       setName(profile.name || "Friend");
       setWeightKg(profile.weightKg || 70);
       setTargetKg(profile.targetKg || 68);
+      setHeightCm(profile.heightCm || 170);
+      setAge(profile.age || 28);
+      setGender(profile.gender || "male");
+      setActivityLevel(profile.activityLevel || "light");
+      setPace(profile.pace || "moderate");
       setGoalKcal(profile.goalKcal || 2000);
       setBreakfastTime(profile.breakfastTime || "08:00");
       setLunchTime(profile.lunchTime || "13:00");
@@ -63,24 +73,31 @@ export function OnboardingDialog({ open: controlledOpen, onOpenChange }: Onboard
     onOpenChange?.(open);
   };
 
-  const calculateMacros = (kcal: number, targetWeight: number) => {
-    const protein = Math.round(targetWeight * 1.2); // ~1.2g per kg
-    const fat = Math.round((kcal * 0.25) / 9); // 25% calories from fat
-    const carbs = Math.round((kcal - (protein * 4 + fat * 9)) / 4);
-    return { protein, carbs, fat };
-  };
-
   const handleFinish = () => {
-    const { protein, carbs, fat } = calculateMacros(goalKcal, targetKg);
+    const goals = calculateDailyGoals({
+      weightKg,
+      targetKg,
+      heightCm,
+      age,
+      gender,
+      activityLevel,
+      pace,
+    });
+
     saveProfile({
       ...profile,
       name: name.trim() || "You",
       weightKg,
       targetKg,
-      goalKcal,
-      goalProtein: protein,
-      goalCarbs: carbs,
-      goalFat: fat,
+      heightCm,
+      age,
+      gender,
+      activityLevel,
+      pace,
+      goalKcal: goals.goalKcal,
+      goalProtein: goals.goalProtein,
+      goalCarbs: goals.goalCarbs,
+      goalFat: goals.goalFat,
       breakfastTime,
       lunchTime,
       dinnerTime,
@@ -153,61 +170,120 @@ export function OnboardingDialog({ open: controlledOpen, onOpenChange }: Onboard
 
           {/* STEP 2: Macros & Target Weight */}
           {step === 2 && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <Label htmlFor="current-weight" className="text-xs font-medium text-muted-foreground">Current Weight (kg)</Label>
                   <Input
                     id="current-weight"
                     type="number"
                     value={weightKg}
                     onChange={(e) => setWeightKg(Number(e.target.value) || 70)}
-                    className="h-10 rounded-lg"
+                    className="h-9 text-sm rounded-lg"
                   />
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   <Label htmlFor="target-weight" className="text-xs font-medium text-muted-foreground">Target Weight (kg)</Label>
                   <Input
                     id="target-weight"
                     type="number"
                     value={targetKg}
                     onChange={(e) => setTargetKg(Number(e.target.value) || 68)}
-                    className="h-10 rounded-lg"
+                    className="h-9 text-sm rounded-lg"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="target-kcal" className="text-xs font-medium text-muted-foreground flex items-center justify-between">
-                  <span>Daily Calorie Target (kcal)</span>
-                  <span className="font-semibold text-primary">{goalKcal} kcal</span>
-                </Label>
-                <Input
-                  id="target-kcal"
-                  type="number"
-                  step={50}
-                  value={goalKcal}
-                  onChange={(e) => setGoalKcal(Number(e.target.value) || 2000)}
-                  className="h-10 rounded-lg"
-                />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-medium text-muted-foreground">Gender</Label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value as "male" | "female")}
+                    className="flex h-9 w-full rounded-lg border border-input bg-background px-2.5 text-xs"
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-medium text-muted-foreground">Height (cm)</Label>
+                  <Input
+                    type="number"
+                    value={heightCm}
+                    onChange={(e) => setHeightCm(Number(e.target.value) || 170)}
+                    className="h-9 text-xs rounded-lg"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-medium text-muted-foreground">Age</Label>
+                  <Input
+                    type="number"
+                    value={age}
+                    onChange={(e) => setAge(Number(e.target.value) || 28)}
+                    className="h-9 text-xs rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-medium text-muted-foreground">Activity</Label>
+                  <select
+                    value={activityLevel}
+                    onChange={(e) => setActivityLevel(e.target.value as ActivityLevel)}
+                    className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-xs"
+                  >
+                    <option value="sedentary">Sedentary</option>
+                    <option value="light">Lightly Active</option>
+                    <option value="moderate">Moderately Active</option>
+                    <option value="active">Very Active</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-medium text-muted-foreground">Goal Pace</Label>
+                  <select
+                    value={pace}
+                    onChange={(e) => setPace(e.target.value as GoalPace)}
+                    className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-xs"
+                  >
+                    <option value="mild">Mild (0.25kg/wk)</option>
+                    <option value="moderate">Moderate (0.5kg/wk)</option>
+                    <option value="aggressive">Aggressive (0.75kg/wk)</option>
+                  </select>
+                </div>
               </div>
 
               {/* Calculated Macro Preview */}
               {(() => {
-                const { protein, carbs, fat } = calculateMacros(goalKcal, targetKg);
+                const computed = calculateDailyGoals({
+                  weightKg,
+                  targetKg,
+                  heightCm,
+                  age,
+                  gender,
+                  activityLevel,
+                  pace,
+                });
                 return (
-                  <div className="grid grid-cols-3 gap-2 text-center p-3 rounded-xl bg-primary/5 border border-primary/10">
-                    <div>
-                      <div className="text-[10px] uppercase font-semibold text-muted-foreground">Protein</div>
-                      <div className="text-sm font-bold text-foreground">{protein}g</div>
+                  <div className="space-y-2 p-3 rounded-xl bg-primary/5 border border-primary/10 text-center">
+                    <div className="flex items-center justify-between text-xs border-b border-primary/10 pb-1.5">
+                      <span className="text-muted-foreground font-medium">BMR: {computed.bmr} kcal | TDEE: {computed.tdee} kcal</span>
+                      <span className="font-bold text-primary">{computed.goalKcal} kcal/day</span>
                     </div>
-                    <div>
-                      <div className="text-[10px] uppercase font-semibold text-muted-foreground">Carbs</div>
-                      <div className="text-sm font-bold text-foreground">{carbs}g</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] uppercase font-semibold text-muted-foreground">Fat</div>
-                      <div className="text-sm font-bold text-foreground">{fat}g</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <div className="text-[10px] uppercase font-semibold text-muted-foreground">Protein</div>
+                        <div className="text-sm font-bold text-foreground">{computed.goalProtein}g</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase font-semibold text-muted-foreground">Carbs</div>
+                        <div className="text-sm font-bold text-foreground">{computed.goalCarbs}g</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase font-semibold text-muted-foreground">Fat</div>
+                        <div className="text-sm font-bold text-foreground">{computed.goalFat}g</div>
+                      </div>
                     </div>
                   </div>
                 );

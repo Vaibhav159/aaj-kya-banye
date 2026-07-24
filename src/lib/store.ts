@@ -7,10 +7,18 @@ import { applyTheme } from "./theme";
 
 export type CustomDish = Dish & { custom: true };
 
+export type ActivityLevel = "sedentary" | "light" | "moderate" | "active" | "very_active";
+export type GoalPace = "mild" | "moderate" | "aggressive";
+
 export interface Profile {
   name: string;
   weightKg: number;
   targetKg: number;
+  heightCm?: number;
+  age?: number;
+  gender?: "male" | "female";
+  activityLevel?: ActivityLevel;
+  pace?: GoalPace;
   goalKcal: number;
   goalProtein: number;
   goalCarbs: number;
@@ -24,6 +32,11 @@ export const DEFAULT_PROFILE: Profile = {
   name: "You",
   weightKg: 70,
   targetKg: 68,
+  heightCm: 170,
+  age: 28,
+  gender: "male",
+  activityLevel: "light",
+  pace: "moderate",
   goalKcal: 2000,
   goalProtein: 80,
   goalCarbs: 250,
@@ -32,6 +45,70 @@ export const DEFAULT_PROFILE: Profile = {
   lunchTime: "13:00",
   dinnerTime: "20:00",
 };
+
+/**
+ * ponytail: Calculates BMR, TDEE, Calorie Target, and Macro split dynamically using Mifflin-St Jeor.
+ * Known ceiling: Heuristic BMR without body fat % measurements. Upgrade path: Katch-McArdle if body fat % is added.
+ */
+export function calculateDailyGoals(p: Partial<Profile>) {
+  const weight = p.weightKg ?? 70;
+  const target = p.targetKg ?? 68;
+  const height = p.heightCm ?? 170;
+  const age = p.age ?? 28;
+  const gender = p.gender ?? "male";
+  const activity = p.activityLevel ?? "light";
+  const pace = p.pace ?? "moderate";
+
+  // 1. Mifflin-St Jeor BMR
+  const genderOffset = gender === "female" ? -161 : 5;
+  const bmr = Math.round(10 * weight + 6.25 * height - 5 * age + genderOffset);
+
+  // 2. TDEE Activity Multipliers
+  const activityMultipliers: Record<ActivityLevel, number> = {
+    sedentary: 1.2,
+    light: 1.375,
+    moderate: 1.55,
+    active: 1.725,
+    very_active: 1.9,
+  };
+  const tdee = Math.round(bmr * (activityMultipliers[activity] || 1.375));
+
+  // 3. Pace Calorie Adjustment (per day)
+  const paceKcalMap: Record<GoalPace, number> = {
+    mild: 275,
+    moderate: 550,
+    aggressive: 825,
+  };
+  const paceAdjustment = paceKcalMap[pace] || 550;
+
+  let goalKcal = tdee;
+  if (target < weight) {
+    goalKcal = tdee - paceAdjustment;
+  } else if (target > weight) {
+    goalKcal = tdee + paceAdjustment;
+  }
+
+  // Safety calorie floor
+  const minFloor = gender === "female" ? 1200 : 1500;
+  goalKcal = Math.max(minFloor, Math.round(goalKcal));
+
+  // 4. Macro Calculation
+  const refWeight = target > 0 ? target : weight;
+  const goalProtein = Math.round(refWeight * 1.8);
+  const goalFat = Math.round((goalKcal * 0.25) / 9);
+  const proteinKcal = goalProtein * 4;
+  const fatKcal = goalFat * 9;
+  const goalCarbs = Math.max(50, Math.round((goalKcal - (proteinKcal + fatKcal)) / 4));
+
+  return {
+    bmr,
+    tdee,
+    goalKcal,
+    goalProtein,
+    goalCarbs,
+    goalFat,
+  };
+}
 
 const PROFILE_KEY = "thali:profile";
 const CYCLE_KEY = "thali:cycleStart";

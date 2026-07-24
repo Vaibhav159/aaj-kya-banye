@@ -13,8 +13,14 @@ import { saveCalendarFeed } from "@/lib/calendar-server";
 import { DISHES, type Dish } from "@/lib/dishes";
 import { SNACKS } from "@/lib/snacks";
 import { DishDetailDialog } from "@/components/dish-detail";
-import { Search, Sun, Moon, Monitor } from "lucide-react";
-import { useTheme, type ThemeMode } from "@/lib/theme";
+import { Search, Menu, Sparkles, ChevronRight } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   CommandDialog,
   CommandEmpty,
@@ -40,6 +46,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { BottomNav } from "@/components/bottom-nav";
 import { OnboardingDialog } from "@/components/onboarding-dialog";
+
 
 function NotFoundComponent() {
   return (
@@ -169,7 +176,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -248,6 +255,8 @@ function fuzzyMatch(text: string, query: string): boolean {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<Dish | null>(null);
 
@@ -294,7 +303,6 @@ function RootComponent() {
         .catch((err) => console.error("Thali SW registration failed:", err));
     }
   }, []);
-
 
   // Shared meal plan detection
   useEffect(() => {
@@ -373,15 +381,98 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen flex flex-col">
-        <SiteHeader onSearchClick={() => setSearchOpen(true)} />
+        <SiteHeader
+          onSearchClick={() => setSearchOpen(true)}
+          onMenuClick={() => setMenuOpen(true)}
+        />
         <main className="flex-1 pb-20 md:pb-0" style={{ viewTransitionName: "main-content" } as React.CSSProperties}>
           <Outlet />
         </main>
         <SiteFooter />
         <Toaster richColors position="top-center" />
-        <BottomNav />
+        <BottomNav onOpenMenu={() => setMenuOpen(true)} />
         <CalendarSyncObserver />
-        <OnboardingDialog />
+        <OnboardingDialog open={onboardingOpen} onOpenChange={setOnboardingOpen} />
+
+        <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+          <SheetContent side="right" className="w-[85%] sm:max-w-sm p-0 flex flex-col">
+            <div className="p-5 overflow-y-auto flex-1 space-y-5">
+              <SheetHeader className="text-left space-y-1 border-b border-border pb-4">
+                <div className="flex items-center gap-2.5">
+                  <img src={logoSvg} alt="Logo" className="h-7 w-7 shrink-0" />
+                  <SheetTitle className="font-display text-lg font-semibold">Aaj Kya Banaye?</SheetTitle>
+                </div>
+                <SheetDescription className="text-xs">
+                  42-day Indian vegetarian meal planner
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase px-2 mb-1.5">
+                  Navigation
+                </p>
+                {[
+                  { to: "/", label: "Today", desc: "Daily meals & macro status", emoji: "🍽️" },
+                  { to: "/planner", label: "Planner", desc: "42-day rotating meal plan", emoji: "📅" },
+                  { to: "/kuch-bhi", label: "Kuch Bhi", desc: "Random meal decision helper", emoji: "🎲" },
+                  { to: "/history", label: "History", desc: "Meal logs & streak history", emoji: "📊" },
+                  { to: "/snacks", label: "Snacks", desc: "Craving-based snack finder", emoji: "🍿" },
+                  { to: "/grocery", label: "Grocery", desc: "Aggregated shopping list", emoji: "🛒" },
+                  { to: "/database", label: "Dishes", desc: "150+ recipe database", emoji: "📖" },
+                  { to: "/rules", label: "Rules", desc: "Custom nutrition rules", emoji: "⚡" },
+                  { to: "/settings", label: "Settings", desc: "Profile, iCal & preferences", emoji: "⚙️" },
+                ].map((l) => (
+                  <Link
+                    key={l.to}
+                    to={l.to}
+                    activeOptions={{ exact: l.to === "/" }}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-colors hover:bg-secondary/70 group"
+                    activeProps={{ className: "flex items-center justify-between rounded-xl px-3 py-2 text-sm bg-secondary font-medium text-foreground group" }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg leading-none">{l.emoji}</span>
+                      <div>
+                        <div className="font-medium leading-tight">{l.label}</div>
+                        <div className="text-[10px] text-muted-foreground">{l.desc}</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                ))}
+              </div>
+
+              <div className="space-y-2 border-t border-border pt-4">
+                <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase px-2">
+                  Quick Actions
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setSearchOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl border border-border bg-secondary/30 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
+                >
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                  <span>Search Dishes & Snacks</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setOnboardingOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl border border-border bg-secondary/30 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
+                >
+                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  <span>Relaunch Setup Wizard</span>
+                </button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
 
         <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
           <CommandInput
@@ -479,8 +570,13 @@ function RootComponent() {
   );
 }
 
-function SiteHeader({ onSearchClick }: { onSearchClick: () => void }) {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+function SiteHeader({
+  onSearchClick,
+  onMenuClick,
+}: {
+  onSearchClick: () => void;
+  onMenuClick: () => void;
+}) {
   const links: { to: string; label: string }[] = [
     { to: "/", label: "Today" },
     { to: "/planner", label: "Planner" },
@@ -493,15 +589,9 @@ function SiteHeader({ onSearchClick }: { onSearchClick: () => void }) {
     { to: "/settings", label: "Settings" },
   ];
 
-  const cycleTheme = () => {
-    if (theme === "system") setTheme("light");
-    else if (theme === "light") setTheme("dark");
-    else setTheme("system");
-  };
-
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto grid grid-cols-[1fr_auto_auto] md:grid-cols-[auto_1fr_auto_auto] items-center gap-3 px-4 py-3">
+      <div className="mx-auto grid grid-cols-[1fr_auto_auto] md:grid-cols-[auto_1fr_auto] items-center gap-2 md:gap-3 px-4 py-3">
         <Link to="/" className="flex min-w-0 items-center gap-2.5">
           <img src={logoSvg} alt="Aaj Kya Banaye Logo" className="h-9 w-9 shrink-0 drop-shadow-sm" />
           <span className="truncate font-display text-xl font-semibold">Aaj Kya Banaye?</span>
@@ -521,21 +611,14 @@ function SiteHeader({ onSearchClick }: { onSearchClick: () => void }) {
           </kbd>
         </button>
 
-        {/* Theme Mode Toggle button */}
+        {/* Mobile Menu Button */}
         <button
           type="button"
-          aria-label={`Current theme: ${theme}. Click to change.`}
-          title={`Theme: ${theme.toUpperCase()} (Click to toggle)`}
-          onClick={cycleTheme}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-secondary/50 text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring select-none shrink-0"
+          aria-label="Open mobile menu"
+          onClick={onMenuClick}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-secondary/50 text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring select-none shrink-0 md:hidden"
         >
-          {theme === "system" ? (
-            <Monitor className="h-4 w-4 text-muted-foreground" />
-          ) : resolvedTheme === "dark" ? (
-            <Moon className="h-4 w-4 text-amber-400" />
-          ) : (
-            <Sun className="h-4 w-4 text-amber-600" />
-          )}
+          <Menu className="h-4 w-4" />
         </button>
 
         <nav className="hidden md:flex flex-wrap items-center gap-1 text-sm justify-end">
@@ -555,6 +638,7 @@ function SiteHeader({ onSearchClick }: { onSearchClick: () => void }) {
     </header>
   );
 }
+
 
 function SiteFooter() {
   return (
