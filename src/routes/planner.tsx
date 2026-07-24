@@ -7,13 +7,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DISHES_BY_ID, type Dish } from "@/lib/dishes";
-import { applyOverrides, currentDayIndex, useCycleStart, useOverrides, useFavorites, formatCycleDuration } from "@/lib/store";
+import { applyOverrides, currentDayIndex, useCycleStart, useOverrides, useFavorites, formatCycleDuration, useMealLog, computeStreak } from "@/lib/store";
 import { type DayPlan } from "@/lib/plan";
 import { shareOrCopy, weekSummary } from "@/lib/share";
 import { buildIcs, downloadIcs } from "@/lib/ical";
 import { drawWeeklyPlan } from "@/lib/share-image";
 import { generateSolvedPlan, type SolverResult } from "@/lib/plan-shuffler";
 import { useCustomRules } from "@/lib/custom-rules";
+import { checkDay } from "@/lib/rules";
 import { Shuffle, ArrowRight, Sparkles, Heart, Share2, FileText, Link as LinkIcon, Image as ImageIcon, Calendar, Search } from "lucide-react";
 
 import { DishDetailDialog } from "@/components/dish-detail";
@@ -42,36 +43,71 @@ function dayKcal(dayIds: [string, string, string]): number {
 }
 
 function CycleStatsCard({ plan, dayIdx }: { plan: DayPlan[]; dayIdx: number }) {
+  const { rules: customRules } = useCustomRules();
+  const { log } = useMealLog();
+  const { start } = useCycleStart();
+
   const stats = useMemo(() => {
     const dishIds = new Set<string>();
     let highProteinDays = 0;
     let airfryerCount = 0;
     let paneerCount = 0;
+    let soupDays = 0;
+    let cheatMeals = 0;
 
-    plan.forEach((d) => {
+    let totalRuleChecks = 0;
+    let passedRuleChecks = 0;
+
+    plan.forEach((d, idx) => {
       const b = DISHES_BY_ID[d.breakfast];
       const l = DISHES_BY_ID[d.lunch];
       const din = DISHES_BY_ID[d.dinner];
+
+      let dayHasSoup = false;
 
       [b, l, din].forEach((dish) => {
         if (dish) {
           dishIds.add(dish.id);
           if (dish.equipment?.includes("airfryer") || dish.tags.includes("airfryer" as any)) airfryerCount++;
-          if (dish.tags.includes("paneer")) paneerCount++;
+          if (dish.tags.includes("paneer") || dish.name.toLowerCase().includes("paneer")) paneerCount++;
+          if (dish.tags.includes("soup") || dish.name.toLowerCase().includes("soup")) dayHasSoup = true;
+          if (
+            dish.tags.some((t) => ["pizza", "sweet", "street-food", "heavy", "fried-breakfast"].includes(t)) ||
+            dish.cookingType === "fried"
+          ) {
+            cheatMeals++;
+          }
         }
       });
 
+      if (dayHasSoup) soupDays++;
+
       const dayProtein = (b?.protein ?? 0) + (l?.protein ?? 0) + (din?.protein ?? 0);
       if (dayProtein >= 60) highProteinDays++;
+
+      if (customRules && customRules.length > 0) {
+        const checks = checkDay(plan, idx, customRules);
+        checks.forEach((c) => {
+          totalRuleChecks++;
+          if (c.passed) passedRuleChecks++;
+        });
+      }
     });
+
+    const ruleCompliance = totalRuleChecks > 0 ? Math.round((passedRuleChecks / totalRuleChecks) * 100) : 100;
+    const mealStreak = computeStreak(log, start, dayIdx);
 
     return {
       uniqueDishes: dishIds.size,
       highProteinDays,
       airfryerCount,
       paneerCount,
+      soupDays,
+      ruleCompliance,
+      mealStreak,
+      cheatMeals,
     };
-  }, [plan]);
+  }, [plan, customRules, log, start, dayIdx]);
 
   const completionPct = Math.round(((dayIdx + 1) / plan.length) * 100);
 
@@ -95,21 +131,37 @@ function CycleStatsCard({ plan, dayIdx }: { plan: DayPlan[]; dayIdx: number }) {
       </div>
 
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-        <div className="rounded-lg bg-secondary/40 p-3">
+        <div className="rounded-lg bg-secondary/40 p-3 flex flex-col justify-center items-center">
           <div className="font-display text-2xl font-bold text-foreground">{stats.uniqueDishes}</div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Unique Dishes</div>
+          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mt-0.5">Unique Dishes</div>
         </div>
-        <div className="rounded-lg bg-secondary/40 p-3">
+        <div className="rounded-lg bg-secondary/40 p-3 flex flex-col justify-center items-center">
           <div className="font-display text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.highProteinDays}</div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">High Protein Days</div>
+          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mt-0.5">High Protein Days</div>
         </div>
-        <div className="rounded-lg bg-secondary/40 p-3">
+        <div className="rounded-lg bg-secondary/40 p-3 flex flex-col justify-center items-center">
           <div className="font-display text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.airfryerCount}</div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Air Fryer Meals</div>
+          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mt-0.5">Air Fryer Meals</div>
         </div>
-        <div className="rounded-lg bg-secondary/40 p-3">
+        <div className="rounded-lg bg-secondary/40 p-3 flex flex-col justify-center items-center">
           <div className="font-display text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.paneerCount}</div>
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Paneer Dishes</div>
+          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mt-0.5">Paneer Dishes</div>
+        </div>
+        <div className="rounded-lg bg-secondary/40 p-3 flex flex-col justify-center items-center">
+          <div className="font-display text-2xl font-bold text-cyan-600 dark:text-cyan-400">{stats.soupDays}</div>
+          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mt-0.5">Soup Days</div>
+        </div>
+        <div className="rounded-lg bg-secondary/40 p-3 flex flex-col justify-center items-center">
+          <div className="font-display text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.ruleCompliance}%</div>
+          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mt-0.5">Rule Compliance</div>
+        </div>
+        <div className="rounded-lg bg-secondary/40 p-3 flex flex-col justify-center items-center">
+          <div className="font-display text-2xl font-bold text-orange-600 dark:text-orange-400">{stats.mealStreak}</div>
+          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mt-0.5">Meal Streak</div>
+        </div>
+        <div className="rounded-lg bg-secondary/40 p-3 flex flex-col justify-center items-center">
+          <div className="font-display text-2xl font-bold text-rose-600 dark:text-rose-400">{stats.cheatMeals}</div>
+          <div className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground mt-0.5">Cheat Meals</div>
         </div>
       </div>
     </div>
