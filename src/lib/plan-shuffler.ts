@@ -90,7 +90,7 @@ function checkHardCrossDay(
       const dish = DISHES_BY_ID[dishId];
       if (dish && dishMatches(dish, r.match)) count++; // the one we're placing
 
-      for (let d = weekStart; d < weekEnd && d < 42; d++) {
+      for (let d = weekStart; d < weekEnd && d < grid.length; d++) {
         if (d === dayIdx) {
           // Count other assigned slots on same day
           for (const si of slotsToCheck) {
@@ -169,7 +169,7 @@ function solve(
   existingPlan: DayPlan[],
 ): { grid: (string | null)[][]; succeeded: boolean } {
   // Initialize grid from existing plan (non-target cells keep their values)
-  const grid: (string | null)[][] = Array.from({ length: 42 }, (_, i) => {
+  const grid: (string | null)[][] = Array.from({ length: existingPlan.length }, (_, i) => {
     const day = existingPlan[i];
     if (!targetIndices.includes(i)) {
       return [day.breakfast, day.lunch, day.dinner];
@@ -288,7 +288,7 @@ function scorePlan(
       for (let offset = -2; offset <= 2; offset++) {
         if (offset === 0) continue;
         const ni = dIdx + offset;
-        if (ni < 0 || ni >= 42) continue;
+        if (ni < 0 || ni >= grid.length) continue;
         const neighborDishes = [grid[ni][0], grid[ni][1], grid[ni][2]];
         if (neighborDishes.includes(id)) {
           noRepeatBonus = 0;
@@ -352,7 +352,7 @@ function hillClimb(
 function checkViolations(plan: DayPlan[], rules: CustomRule[]): string[] {
   // ponytail: inline violation check to avoid circular import with rules.ts
   const violated = new Set<string>();
-  for (let dayIdx = 0; dayIdx < 42; dayIdx++) {
+  for (let dayIdx = 0; dayIdx < plan.length; dayIdx++) {
     const day = plan[dayIdx];
     const weekStart = Math.floor(dayIdx / 7) * 7;
     const week = plan.slice(weekStart, weekStart + 7);
@@ -392,7 +392,7 @@ function checkViolations(plan: DayPlan[], rules: CustomRule[]): string[] {
         if (r.kind === "min-frequency" && count < limit) violated.add(r.id);
       } else if (r.kind === "no-repeat") {
         const days = r.match.minDaysBetweenRepeat ?? 3;
-        const window = plan.slice(Math.max(0, dayIdx - days), Math.min(42, dayIdx + days + 1));
+        const window = plan.slice(Math.max(0, dayIdx - days), Math.min(plan.length, dayIdx + days + 1));
         const windowIds = window.flatMap((d) => [d.breakfast, d.lunch, d.dinner]);
         if (!dayIds.every((id) => windowIds.filter((x) => x === id).length <= 1)) {
           violated.add(r.id);
@@ -417,7 +417,7 @@ function checkViolations(plan: DayPlan[], rules: CustomRule[]): string[] {
  */
 export function generateShuffledPlan(
   currentPlan: DayPlan[],
-  range: "7days" | "42days",
+  range: "7days" | "full" | "42days",
   startDayIdx: number,
   customRules: CustomRule[],
 ): DayPlan[] {
@@ -427,14 +427,15 @@ export function generateShuffledPlan(
 
 export function generateSolvedPlan(
   currentPlan: DayPlan[],
-  range: "7days" | "42days",
+  range: "7days" | "full" | "42days",
   startDayIdx: number,
   customRules: CustomRule[],
 ): SolverResult {
+  const cycleLen = currentPlan.length || 42;
   const targetIndices: number[] =
     range === "7days"
-      ? Array.from({ length: 7 }, (_, i) => (startDayIdx + i) % 42)
-      : Array.from({ length: 42 }, (_, i) => i);
+      ? Array.from({ length: 7 }, (_, i) => (startDayIdx + i) % cycleLen)
+      : Array.from({ length: cycleLen }, (_, i) => i);
 
   const enabledRules = customRules.filter((r) => r.enabled);
   const hardRules = enabledRules.filter((r) => classifyRule(r) === "hard");

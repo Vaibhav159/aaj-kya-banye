@@ -14,14 +14,15 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { DISHES_BY_ID, type Slot } from "@/lib/dishes";
 import { SNACKS_BY_ID } from "@/lib/snacks";
 import {
+  useCycleStart,
+  useOverrides,
+  useMealLog,
+  useProfile,
   applyOverrides,
-  computeStreak,
   currentDayIndex,
   logKey,
-  useCycleStart,
-  useMealLog,
-  useOverrides,
-  useProfile,
+  formatCycleDuration,
+  computeStreak,
   getMealDisplayStatus,
 } from "@/lib/store";
 import { Link } from "@tanstack/react-router";
@@ -41,12 +42,12 @@ export const Route = createFileRoute("/history")({
 const SLOTS: Slot[] = ["breakfast", "lunch", "dinner"];
 
 function HistoryPage() {
-  const { start } = useCycleStart();
+  const { start, length } = useCycleStart();
   const { overrides } = useOverrides();
   const { log } = useMealLog();
   const { profile } = useProfile();
-  const dayIdx = currentDayIndex(start);
-  const plan = useMemo(() => applyOverrides(overrides), [overrides]);
+  const dayIdx = currentDayIndex(start, Date.now(), length);
+  const plan = useMemo(() => applyOverrides(overrides, length), [overrides, length]);
   const streak = computeStreak(log, start, dayIdx);
 
   const entries = Object.entries(log);
@@ -123,21 +124,21 @@ function HistoryPage() {
 
   // Adherence and skipped meals per day for the current cycle
   const perDayData = useMemo(() => {
-    return Array.from({ length: 42 }, (_, i) => {
+    return Array.from({ length }, (_, i) => {
       const eaten = SLOTS.filter((s) => log[logKey(start, i, s)]?.status === "eaten").length;
       const skipped = SLOTS.filter((s) => log[logKey(start, i, s)]?.status === "skipped").length;
       return { eaten, skipped };
     });
-  }, [log, start]);
+  }, [log, start, length]);
 
   // Top dishes
   const dishCount: Record<string, number> = {};
-  for (let d = 0; d < 42; d++) {
+  for (let d = 0; d < length; d++) {
     for (const s of SLOTS) {
       const entry = log[logKey(start, d, s)];
       if (entry?.status !== "eaten") continue;
-      const id = plan[d][s];
-      dishCount[id] = (dishCount[id] ?? 0) + 1;
+      const id = plan[d] ? plan[d][s] : null;
+      if (id) dishCount[id] = (dishCount[id] ?? 0) + 1;
     }
   }
   const top = Object.entries(dishCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -245,7 +246,7 @@ function HistoryPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Meals logged" value={totalMeals} />
         <Stat label="Current streak" value={`${streak} 🔥`} />
-        <Stat label="Adherence" value={`${Math.round((totalMeals / (42 * 3)) * 100)}%`} />
+        <Stat label="Adherence" value={`${Math.round((totalMeals / (length * 3)) * 100)}%`} />
       </div>
 
       <Tabs defaultValue="calories" className="w-full">
@@ -302,7 +303,7 @@ function HistoryPage() {
       </Tabs>
 
       <Card>
-        <CardHeader><CardTitle>42-day heatmap</CardTitle></CardHeader>
+        <CardHeader><CardTitle>{formatCycleDuration(length)} Heatmap</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 gap-1.5 sm:grid-cols-14">
             {perDayData.map(({ eaten, skipped }, i) => {

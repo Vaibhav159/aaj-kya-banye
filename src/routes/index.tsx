@@ -52,12 +52,12 @@ const SLOT_META: Record<Slot, { label: string; emoji: string; time: string }> = 
 
 function Dashboard() {
   const { profile } = useProfile();
-  const { start } = useCycleStart();
+  const { start, length } = useCycleStart();
   const { overrides, setOne } = useOverrides();
   const { log, setEntry } = useMealLog();
   const { rules: customRules } = useCustomRules();
-  const dayIdx = currentDayIndex(start);
-  const plan = useMemo(() => applyOverrides(overrides), [overrides]);
+  const dayIdx = currentDayIndex(start, Date.now(), length);
+  const plan = useMemo(() => applyOverrides(overrides, length), [overrides, length]);
   const today = plan[dayIdx];
 
   const [swapSlot, setSwapSlot] = useState<Slot | null>(null);
@@ -87,7 +87,7 @@ function Dashboard() {
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm uppercase tracking-wide text-muted-foreground">Day {dayIdx + 1} of 42</p>
+          <p className="text-sm uppercase tracking-wide text-muted-foreground">Day {dayIdx + 1} of {length}</p>
           <h1 className="font-display text-4xl font-semibold">Hello, {profile.name}</h1>
           <p className="mt-1 text-muted-foreground">
             Here's what you're eating today.
@@ -296,10 +296,11 @@ function NutritionCard({
               {pct}%
             </text>
           </svg>
-          <div className="flex-1 space-y-3">
-            <MacroBar label="Protein" value={totals.protein} goal={profile.goalProtein} color="var(--color-primary)" />
-            <MacroBar label="Carbs" value={totals.carbs} goal={profile.goalCarbs} color="var(--color-accent)" />
-            <MacroBar label="Fat" value={totals.fat} goal={profile.goalFat} color="var(--color-success)" />
+          <div className="flex-1 space-y-2.5">
+            <MacroBar label="Calories" value={totals.kcal} goal={profile.goalKcal} unit="kcal" color="var(--color-chart-1)" />
+            <MacroBar label="Protein" value={totals.protein} goal={profile.goalProtein} unit="g" color="var(--color-primary)" />
+            <MacroBar label="Carbs" value={totals.carbs} goal={profile.goalCarbs} unit="g" color="var(--color-accent)" />
+            <MacroBar label="Fat" value={totals.fat} goal={profile.goalFat} unit="g" color="var(--color-success)" />
           </div>
         </div>
       </CardContent>
@@ -307,16 +308,16 @@ function NutritionCard({
   );
 }
 
-function MacroBar({ label, value, goal, color }: { label: string; value: number; goal: number; color: string }) {
+function MacroBar({ label, value, goal, unit = "g", color }: { label: string; value: number; goal: number; unit?: string; color: string }) {
   const pct = Math.min(100, Math.round((value / goal) * 100));
   return (
     <div>
       <div className="mb-1 flex justify-between text-sm">
         <span className="text-foreground">{label}</span>
-        <span className="text-muted-foreground">{value}g / {goal}g</span>
+        <span className="text-muted-foreground">{value}{unit} / {goal}{unit}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-muted">
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+        <div className="h-full rounded-full transition-all duration-300" style={{ width: `${pct}%`, background: color }} />
       </div>
     </div>
   );
@@ -335,26 +336,34 @@ function RulesCard({
 }) {
   const enabledCustomRules = customRules.filter((r) => r.enabled);
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-display text-2xl">Rule Tracker</CardTitle>
+    <Card className="flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <CardTitle className="font-display text-xl sm:text-2xl">Rule Tracker</CardTitle>
+        <Link to="/rules" className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors">
+          Manage →
+        </Link>
       </CardHeader>
-      <CardContent className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+      <CardContent className="flex-1 space-y-1.5 max-h-[310px] overflow-y-auto pr-1">
         {enabledCustomRules.map((rule) => {
           const c = checks.find((x) => x.id === rule.id);
           if (!c) return null;
           return (
-            <div key={rule.id} className="flex items-start justify-between gap-3 rounded-md border border-border/70 bg-secondary/30 p-3">
-              <div>
-                <div className="text-sm font-medium">{rule.label}</div>
-                <div className="text-xs text-muted-foreground capitalize">{rule.kind.replace(/-/g, " ")} · {rule.scope}</div>
+            <div
+              key={rule.id}
+              className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-secondary/20 px-3 py-2 transition-colors hover:bg-secondary/40"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="text-xs sm:text-sm font-medium leading-tight text-foreground truncate">{rule.label}</div>
+                <div className="text-[11px] text-muted-foreground capitalize leading-tight mt-0.5">
+                  {rule.kind.replace(/-/g, " ")} · {rule.scope}
+                </div>
               </div>
               <RuleBadgePopover rule={rule} check={c} dayPlan={dayPlan} weekPlan={weekPlan} />
             </div>
           );
         })}
         {enabledCustomRules.length === 0 && (
-          <p className="text-sm text-muted-foreground p-3 text-center">
+          <p className="text-sm text-muted-foreground py-6 text-center">
             No rules active. Configure them in settings.
           </p>
         )}
@@ -412,13 +421,14 @@ function RuleBadgePopover({
           onMouseEnter={() => setOpen(true)}
           onMouseLeave={() => setOpen(false)}
           onClick={() => setOpen((prev) => !prev)}
-          className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold border cursor-pointer hover:opacity-90 transition-opacity select-none ${
+          className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium border cursor-pointer hover:opacity-80 transition-opacity select-none ${
             check.passed
-              ? "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-200 dark:border-emerald-800"
-              : "bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/70 dark:text-rose-200 dark:border-rose-800"
+              ? "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-700/60"
+              : "bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-700/60"
           }`}
         >
-          {check.passed ? "✓" : "!"} {check.detail}
+          <span className="font-semibold">{check.passed ? "✓" : "!"}</span>
+          <span>{check.detail}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -649,7 +659,8 @@ function RecentStrip({
   profile: Profile;
 }) {
   const slots: Slot[] = ["breakfast", "lunch", "dinner"];
-  const days = Array.from({ length: 7 }, (_, i) => (((todayIdx - (6 - i)) % 42) + 42) % 42);
+  const cycleLen = plan.length || 42;
+  const days = Array.from({ length: 7 }, (_, i) => (((todayIdx - (6 - i)) % cycleLen) + cycleLen) % cycleLen);
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">

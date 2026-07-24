@@ -25,9 +25,9 @@ const CRAVINGS = Object.keys(CRAVING_META) as Craving[];
 function SnacksPage() {
   const [selected, setSelected] = useState<Craving[]>([]);
   const [detail, setDetail] = useState<Dish | null>(null);
-  const { start } = useCycleStart();
+  const { start, length } = useCycleStart();
   const { log, setEntry } = useMealLog();
-  const dayIdx = currentDayIndex(start);
+  const dayIdx = currentDayIndex(start, Date.now(), length);
 
   const suggestions = useMemo(() => suggestSnacks(selected).slice(0, 8), [selected]);
 

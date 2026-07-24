@@ -39,7 +39,7 @@ export function checkDay(plan: WeekPlan, dayIdx: number, customRules: CustomRule
           return dish && dishMatches(dish, r.match);
         });
         passed = !hasViolatingDish;
-        detail = passed ? "avoided ✓" : "avoided dish present";
+        detail = passed ? "avoided" : "avoided dish present";
       } else if (r.kind === "require") {
         if (r.scope === "any") {
           passed = slotsToCheck.some((s) => {
@@ -50,7 +50,7 @@ export function checkDay(plan: WeekPlan, dayIdx: number, customRules: CustomRule
           const dish = DISHES_BY_ID[day[r.scope]];
           passed = dish ? dishMatches(dish, r.match) : false;
         }
-        detail = passed ? "satisfied ✓" : "missing requirement";
+        detail = passed ? "satisfied" : "missing requirement";
       } else if (r.kind === "min-frequency" || r.kind === "max-frequency") {
         let count = 0;
         week.forEach((d) => {
@@ -73,7 +73,7 @@ export function checkDay(plan: WeekPlan, dayIdx: number, customRules: CustomRule
           return dish && dishMatches(dish, r.match);
         }).length;
         passed = true;
-        detail = preferredCount > 0 ? "preferred ✓" : "no preferred dish";
+        detail = preferredCount > 0 ? "preferred" : "no preferred dish";
       } else if (r.kind === "no-repeat") {
         const days = r.match.minDaysBetweenRepeat ?? 3;
         const window = plan.slice(Math.max(0, dayIdx - days), Math.min(plan.length, dayIdx + days + 1));
@@ -86,7 +86,7 @@ export function checkDay(plan: WeekPlan, dayIdx: number, customRules: CustomRule
         const lunchKcal = DISHES_BY_ID[day.lunch]?.kcal ?? 0;
         const maxDiff = r.match.maxKcalDifference ?? 0;
         passed = dinnerKcal <= lunchKcal + maxDiff;
-        detail = passed ? `dinner (${dinnerKcal} kcal) ≤ lunch (${lunchKcal} kcal)` : `dinner heavier than lunch`;
+        detail = passed ? "lighter dinner" : "dinner heavier than lunch";
       }
 
       return {

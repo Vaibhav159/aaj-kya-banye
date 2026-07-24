@@ -216,54 +216,32 @@ Grocery aggregation merges duplicates, normalizes units (g/ml/pc), and groups by
 
 ---
 
-# 🔄 42-Day Plan
+# 🔄 Flexible Meal Rotation Cycle
 
-- Deterministic generation from dish pools in `plan.ts`
-- Users can override any slot (stored as overrides in localStorage)
+- Deterministic baseline generation from dish pools in `plan.ts`
+- Flexible rotation length (preset options: 1 Week, 2 Weeks, 3 Weeks, 4 Weeks, 1 Month, 6 Weeks [42 days default], 2 Months, 3 Months, or custom 1–365 days)
+- Configurable cycle start date (set specific calendar start date or reset to today)
+- Users can override any slot (stored as overrides in localStorage and synced to Supabase)
 - Fried breakfasts only on Sundays (every 7th day)
 - Dinner always lighter than lunch by kcal
 
 ---
 
-# 📏 Rules Engine
+# 🧠 State Management & Supabase Cloud Sync
 
-### Prebuilt Rules (Flexible Custom Rules)
-All rules (previously built-in rules) are now custom rules prebuilt/pre-populated by default:
-1. Pizza max 1×/week (max frequency)
-2. Paratha only at breakfast/lunch (avoid slot)
-3. Fried breakfasts max 2×/week (max frequency)
-4. Dal or legume every day (require)
-5. Leafy greens every day (require)
-6. No repeat within 3 days (no-repeat interval)
-7. Dinner lighter than lunch (lighter-dinner comparison)
-8. Sweets max 2×/week (max frequency)
-9. Protein Paglu (minimum protein threshold)
-10. Light Dinner (maximum calorie threshold)
-11. Low Carb (maximum carb threshold)
+All state follows local-first hydration from `localStorage` (`thali:*` key prefix) combined with real-time Supabase cloud sync when authenticated:
 
-### Custom Rules (`custom-rules.ts`)
-Users can create avoid/prefer/require/frequency/no-repeat/lighter-dinner rules scoped to any slot, matching on:
-cuisine, cookingType, equipment, tag, tags, maxPrepMinutes, maxSpice, minProtein, maxCarbs, maxKcal, minDaysBetweenRepeat, maxKcalDifference
+- **Profiles & Macro Goals**: `profiles` table
+- **Cycle Start & Duration**: `cycle_starts` table (`start_time`, `cycle_length`)
+- **Meal Overrides / Swaps**: `overrides` table
+- **Meal Logs (Eaten/Skipped)**: `meal_logs` table
+- **Custom Recipes**: `custom_dishes` table
+- **Custom Rules**: `custom_rules` table
 
----
+All state setters call corresponding `sync*` helpers to trigger immediate Supabase sync.
 
-# 🧠 State Management Pattern
-
-All state follows the same hook pattern in `store.ts`:
-
-```ts
-function useX() {
-  const [state, setState] = useState(defaultValue);
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => { setState(readLS(KEY, default)); setHydrated(true); }, []);
-  const save = useCallback((next) => { setState(next); localStorage.setItem(KEY, ...); }, []);
-  return { state, save, hydrated };
-}
-```
-
-Always check `hydrated` before rendering state-dependent UI to avoid hydration flash.
-
-localStorage keys are prefixed with `thali:`.
+### Database Schema Source of Truth (`supabase.sql`)
+The file [`supabase.sql`](supabase.sql) at the root of the repository is the **single source of truth for the Supabase SQL schema**, table definitions, indexes, and Row Level Security (RLS) policies. **Any schema addition or new synced data field MUST be updated in `supabase.sql`.**
 
 ---
 
@@ -306,6 +284,7 @@ Write code for future maintainers.
 - No console errors
 - Follows existing patterns in `src/lib/`
 - localStorage keys prefixed with `thali:`
+- `supabase.sql` updated for any database schema changes
 
 ---
 
@@ -325,7 +304,7 @@ When you make changes to the codebase, update the relevant sections as part of t
 | Add/remove **snacks** in `snacks.ts` | AGENTS.md → Dish Database or a snack section (snack count) |
 | Add/remove **built-in rules** in `rules.ts` | AGENTS.md → Rules Engine (numbered list) |
 | Add/remove **custom rule match fields** | AGENTS.md → Rules Engine → Custom Rules |
-| Add/remove **localStorage keys** | AGENTS.md → State Management Pattern (key prefix note) |
+| Add/remove **localStorage keys** or **Supabase tables/fields** | AGENTS.md → State Management Pattern & `supabase.sql` |
 | Change the **state hook pattern** in `store.ts` | AGENTS.md → State Management Pattern (code example) |
 | Add/remove **ingredient categories** | AGENTS.md → Dish Database → Ingredient Categories |
 | Change **design tokens or fonts** in `styles.css` | AGENTS.md → Design System |

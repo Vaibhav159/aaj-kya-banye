@@ -30,15 +30,15 @@ const RANGES: { id: string; label: string; days: number; offset: number }[] = [
 const CATS: IngredientCategory[] = ["veg", "grain", "dairy", "legume", "fruit", "nut", "oil", "spice", "other"];
 
 function GroceryPage() {
-  const { start } = useCycleStart();
+  const { start, length } = useCycleStart();
   const { overrides } = useOverrides();
-  const dayIdx = currentDayIndex(start);
-  const plan = useMemo(() => applyOverrides(overrides), [overrides]);
+  const dayIdx = currentDayIndex(start, Date.now(), length);
+  const plan = useMemo(() => applyOverrides(overrides, length), [overrides, length]);
   const [range, setRange] = useState(RANGES[3]);
 
   const slice = useMemo(() => {
-    return Array.from({ length: range.days }, (_, i) => plan[(dayIdx + range.offset + i) % 42]);
-  }, [plan, dayIdx, range]);
+    return Array.from({ length: range.days }, (_, i) => plan[(dayIdx + range.offset + i) % length]);
+  }, [plan, dayIdx, range, length]);
 
   const grouped = useMemo(() => aggregateGrocery(slice), [slice]);
 

@@ -112,9 +112,33 @@ export function calculateDailyGoals(p: Partial<Profile>) {
 
 const PROFILE_KEY = "thali:profile";
 const CYCLE_KEY = "thali:cycleStart";
+const CYCLE_LENGTH_KEY = "thali:cycleLength";
 const OVERRIDES_KEY = "thali:overrides";
 const LOG_KEY = "thali:log";
 const CUSTOM_DISHES_KEY = "thali:customDishes";
+
+export const CYCLE_PRESETS = [
+  { days: 7, label: "1 Week", emoji: "⚡", tag: "Quick Sprint" },
+  { days: 14, label: "2 Weeks", emoji: "🌿", tag: "Fortnight Refresh" },
+  { days: 21, label: "3 Weeks", emoji: "🍃", tag: "Habit Builder" },
+  { days: 28, label: "4 Weeks", emoji: "🌟", tag: "Lunar Orbit" },
+  { days: 30, label: "1 Month", emoji: "📅", tag: "Full Calendar" },
+  { days: 42, label: "6 Weeks", emoji: "👑", tag: "Classic Thali" },
+  { days: 60, label: "2 Months", emoji: "🪐", tag: "Long Range" },
+  { days: 90, label: "3 Months", emoji: "🚀", tag: "Quarterly Odyssey" },
+] as const;
+
+export function formatCycleDuration(days: number): string {
+  if (days === 42) return "6 Weeks (42 Days)";
+  if (days % 7 === 0) {
+    const weeks = days / 7;
+    return weeks === 1 ? "1 Week (7 Days)" : `${weeks} Weeks (${days} Days)`;
+  }
+  if (days === 30) return "1 Month (30 Days)";
+  if (days === 60) return "2 Months (60 Days)";
+  if (days === 90) return "3 Months (90 Days)";
+  return `${days} Days`;
+}
 
 export function readLS<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -153,13 +177,28 @@ async function syncProfile(profile: Profile) {
   }
 }
 
-async function syncCycleStart(startTime: number) {
+async function syncFavorites(favorites: string[]) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("profiles").upsert({
+      id: user.id,
+      favorites,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Favorites sync error:", err);
+  }
+}
+
+async function syncCycleStart(startTime: number, cycleLength: number = 42) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from("cycle_starts").upsert({
       id: user.id,
       start_time: startTime,
+      cycle_length: cycleLength,
       updated_at: new Date().toISOString(),
     });
   } catch (err) {
@@ -269,9 +308,14 @@ export async function syncAllData() {
         window.localStorage.setItem("thali:theme", remoteProfile.theme);
         applyTheme(remoteProfile.theme as any);
       }
+      if (remoteProfile.favorites && Array.from(remoteProfile.favorites)) {
+        window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(remoteProfile.favorites));
+      }
     } else {
       const localProfile = readLS<Partial<Profile>>(PROFILE_KEY, {});
       await syncProfile({ ...DEFAULT_PROFILE, ...localProfile });
+      const localFavorites = readLS<string[]>(FAVORITES_KEY, []);
+      if (localFavorites.length > 0) await syncFavorites(localFavorites);
     }
 
     // 2. Sync Cycle Start
@@ -287,9 +331,13 @@ export async function syncAllData() {
 
     if (remoteCycle) {
       window.localStorage.setItem(CYCLE_KEY, JSON.stringify(remoteCycle.start_time));
+      if (remoteCycle.cycle_length) {
+        window.localStorage.setItem(CYCLE_LENGTH_KEY, JSON.stringify(remoteCycle.cycle_length));
+      }
     } else {
       const localCycle = readLS<number | null>(CYCLE_KEY, null);
-      if (localCycle) await syncCycleStart(localCycle);
+      const localLength = readLS<number>(CYCLE_LENGTH_KEY, 42);
+      if (localCycle) await syncCycleStart(localCycle, localLength);
     }
 
     // 3. Sync Overrides
@@ -511,12 +559,16 @@ export function useProfile() {
 
 export function useCycleStart() {
   const [start, setStart] = useState<number>(0);
+  const [length, setLengthState] = useState<number>(42);
   const [hydrated, setHydrated] = useState(false);
 
   const load = useCallback(() => {
-    const stored = readLS<number | null>(CYCLE_KEY, null);
-    if (stored) {
-      setStart(stored);
+    const storedStart = readLS<number | null>(CYCLE_KEY, null);
+    const storedLength = readLS<number>(CYCLE_LENGTH_KEY, 42);
+    setLengthState(storedLength || 42);
+
+    if (storedStart) {
+      setStart(storedStart);
     } else {
       const now = Date.now();
       if (typeof window !== "undefined") window.localStorage.setItem(CYCLE_KEY, JSON.stringify(now));
@@ -534,14 +586,30 @@ export function useCycleStart() {
     }
   }, [load]);
 
+  const setCycleStart = useCallback((newStart: number) => {
+    const midnight = new Date(newStart);
+    midnight.setHours(0, 0, 0, 0);
+    const time = midnight.getTime();
+    setStart(time);
+    if (typeof window !== "undefined") window.localStorage.setItem(CYCLE_KEY, JSON.stringify(time));
+    syncCycleStart(time, length);
+  }, [length]);
+
+  const setCycleLength = useCallback((newLength: number) => {
+    const validLength = Math.max(1, Math.min(365, newLength));
+    setLengthState(validLength);
+    if (typeof window !== "undefined") window.localStorage.setItem(CYCLE_LENGTH_KEY, JSON.stringify(validLength));
+    syncCycleStart(start, validLength);
+  }, [start]);
+
   const reset = useCallback(() => {
     const now = Date.now();
     if (typeof window !== "undefined") window.localStorage.setItem(CYCLE_KEY, JSON.stringify(now));
     setStart(now);
-    syncCycleStart(now);
-  }, []);
+    syncCycleStart(now, length);
+  }, [length]);
 
-  return { start, reset, hydrated };
+  return { start, length, setStart: setCycleStart, setLength: setCycleLength, reset, hydrated };
 }
 
 export type Overrides = Record<string, string>;
@@ -602,24 +670,29 @@ export function useOverrides() {
   return { overrides, setOne, setMany, clearAll, hydrated };
 }
 
-export function applyOverrides(overrides: Overrides): DayPlan[] {
-  return BASE_PLAN.map((day, idx) => ({
-    day: idx,
-    breakfast: overrides[overrideKey(idx, "breakfast")] ?? day.breakfast,
-    lunch: overrides[overrideKey(idx, "lunch")] ?? day.lunch,
-    dinner: overrides[overrideKey(idx, "dinner")] ?? day.dinner,
-  }));
+export function applyOverrides(overrides: Overrides, cycleLength: number = 42): DayPlan[] {
+  const len = cycleLength > 0 ? cycleLength : 42;
+  return Array.from({ length: len }, (_, idx) => {
+    const baseDay = BASE_PLAN[idx % BASE_PLAN.length];
+    return {
+      day: idx,
+      breakfast: overrides[overrideKey(idx, "breakfast")] ?? baseDay.breakfast,
+      lunch: overrides[overrideKey(idx, "lunch")] ?? baseDay.lunch,
+      dinner: overrides[overrideKey(idx, "dinner")] ?? baseDay.dinner,
+    };
+  });
 }
 
-export function currentDayIndex(cycleStart: number, now: number = Date.now()): number {
+export function currentDayIndex(cycleStart: number, now: number = Date.now(), cycleLength: number = 42): number {
   if (!cycleStart) return 0;
+  const len = cycleLength > 0 ? cycleLength : 42;
   const msPerDay = 86400000;
   const startMidnight = new Date(cycleStart);
   startMidnight.setHours(0, 0, 0, 0);
   const nowMidnight = new Date(now);
   nowMidnight.setHours(0, 0, 0, 0);
   const diff = Math.floor((nowMidnight.getTime() - startMidnight.getTime()) / msPerDay);
-  return ((diff % 42) + 42) % 42;
+  return ((diff % len) + len) % len;
 }
 
 // ---------- Meal log ----------
@@ -799,6 +872,7 @@ export function useFavorites() {
       if (typeof window !== "undefined") {
         window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
       }
+      syncFavorites(next);
       return next;
     });
   }, []);
