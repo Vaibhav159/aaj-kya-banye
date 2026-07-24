@@ -8,11 +8,11 @@ interface BottomNavProps {
 const primaryItems: { to: string; label: string; emoji: string }[] = [
   { to: "/", label: "Today", emoji: "🍽️" },
   { to: "/planner", label: "Plan", emoji: "📅" },
-  { to: "/kuch-bhi", label: "Kuch Bhi", emoji: "🎲" },
+  { to: "/snacks", label: "Explore", emoji: "🍿" },
   { to: "/grocery", label: "Grocery", emoji: "🛒" },
 ];
 
-const secondaryRoutes = ["/database", "/history", "/snacks", "/rules", "/settings"];
+const secondaryRoutes = ["/database", "/history", "/kuch-bhi", "/rules", "/settings"];
 
 export function BottomNav({ onOpenMenu }: BottomNavProps) {
   const location = useLocation();

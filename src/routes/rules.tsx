@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Sparkles, CheckCircle2, AlertCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   RULE_FIELD_OPTIONS,
@@ -16,7 +16,9 @@ import {
   type RuleKind,
   type RuleScope,
 } from "@/lib/custom-rules";
-import { DISHES } from "@/lib/dishes";
+import { DISHES, DISHES_BY_ID, type Slot } from "@/lib/dishes";
+import { useProfile, useCycleStart, useOverrides, currentDayIndex, applyOverrides } from "@/lib/store";
+import { checkDay, isSwapAllowed } from "@/lib/rules";
 
 export const Route = createFileRoute("/rules")({
   head: () => ({
@@ -30,6 +32,134 @@ export const Route = createFileRoute("/rules")({
   component: RulesPage,
 });
 
+function RuleScoreOverview() {
+  const { profile } = useProfile();
+  const { start, length } = useCycleStart();
+  const { overrides, setOne } = useOverrides();
+  const { rules: customRules } = useCustomRules();
+
+  const dayIdx = currentDayIndex(start, Date.now(), length);
+  const plan = useMemo(() => applyOverrides(overrides, length), [overrides, length]);
+  const todayPlan = plan[dayIdx];
+
+  const checks = useMemo(() => checkDay(plan, dayIdx, customRules), [plan, dayIdx, customRules]);
+  const activeRules = customRules.filter((r) => r.enabled);
+  const passed = checks.filter((c) => c.passed).length;
+  const total = activeRules.length;
+  const scorePercent = total > 0 ? Math.round((passed / total) * 100) : 100;
+  const ruleScore = (scorePercent / 10).toFixed(1);
+
+  const failedChecks = checks.filter((c) => !c.passed);
+
+  const fixes = useMemo(() => {
+    return failedChecks
+      .map((check) => {
+        const rule = activeRules.find((r) => r.id === check.id);
+        if (!rule) return null;
+
+        const targetSlot: Slot = rule.scope === "dinner" ? "dinner" : rule.scope === "lunch" ? "lunch" : "dinner";
+        const currentDish = DISHES_BY_ID[todayPlan[targetSlot]];
+
+        const candidate = DISHES.find(
+          (d) =>
+            d.id !== currentDish?.id &&
+            d.slots.includes(targetSlot) &&
+            isSwapAllowed(d, targetSlot, dayIdx, plan, customRules)
+        );
+
+        return {
+          check,
+          rule,
+          slot: targetSlot,
+          currentDish,
+          fixDish: candidate,
+        };
+      })
+      .filter(Boolean);
+  }, [failedChecks, activeRules, todayPlan, dayIdx, plan, customRules]);
+
+  return (
+    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-secondary/30 p-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
+        <div>
+          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
+            <Sparkles className="h-4 w-4" />
+            <span>Actionable Rule Engine</span>
+          </div>
+          <h2 className="font-display text-2xl font-bold mt-1">Rule Compliance Score</h2>
+        </div>
+        <div className="rounded-2xl border border-primary/20 bg-background/80 px-4 py-2 text-center backdrop-blur shadow-xs">
+          <div className="font-display text-2xl font-extrabold text-primary">{ruleScore} / 10</div>
+          <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+            {passed} of {total} Rules Passing
+          </div>
+        </div>
+      </div>
+
+      {fixes.length > 0 ? (
+        <div className="mt-4 space-y-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Here's how to fix today's warnings
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {fixes.map((item, idx) => {
+              if (!item) return null;
+              const { rule, check, slot, currentDish, fixDish } = item;
+              return (
+                <div key={idx} className="flex flex-col justify-between rounded-xl border border-rose-500/20 bg-background p-4 shadow-2xs">
+                  <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-sm text-foreground">{rule.label}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                        Violated
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{check.detail}</p>
+
+                    {fixDish && (
+                      <div className="mt-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-2.5">
+                        <div className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
+                          Recommended Fix:
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xl">{fixDish.emoji}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium text-xs truncate">{fixDish.name}</div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {fixDish.kcal} kcal ({fixDish.kcal - (currentDish?.kcal ?? 0)} kcal diff)
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {fixDish && (
+                    <Button
+                      size="sm"
+                      className="mt-3 w-full text-xs"
+                      onClick={() => {
+                        setOne(dayIdx, slot, fixDish.id);
+                        toast.success(`Swapped ${slot} to ${fixDish.name}!`);
+                      }}
+                    >
+                      Apply Fix (Swap {slot})
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 text-xs text-emerald-800 dark:text-emerald-200">
+          ✓ All active rules are currently passing for today's meal plan!
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function RulesPage() {
   const { rules, add, update, remove, toggle } = useCustomRules();
   const [showForm, setShowForm] = useState(false);
@@ -38,14 +168,16 @@ function RulesPage() {
     <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
       <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
         <div className="min-w-0">
-          <p className="text-sm uppercase tracking-wide text-muted-foreground">Custom Rules</p>
-          <h1 className="truncate font-display text-3xl sm:text-4xl font-semibold">Your dietary config</h1>
+          <p className="text-sm uppercase tracking-wide text-muted-foreground">Custom Rules Engine</p>
+          <h1 className="truncate font-display text-3xl sm:text-4xl font-semibold">Dietary Rules & Fixes</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Rules filter swap suggestions and the "Decide for me" picker. Toggle any on/off.
+            Rules evaluate your rotation, filter swap suggestions, and power automatic meal fixes.
           </p>
         </div>
         <Button onClick={() => setShowForm((s) => !s)}>{showForm ? "Close" : "+ Rule"}</Button>
       </header>
+
+      <RuleScoreOverview />
 
       {showForm && (
         <RuleForm

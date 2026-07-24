@@ -41,6 +41,81 @@ function dayKcal(dayIds: [string, string, string]): number {
   return dayIds.reduce((s, id) => s + (DISHES_BY_ID[id]?.kcal ?? 0), 0);
 }
 
+function CycleStatsCard({ plan, dayIdx }: { plan: DayPlan[]; dayIdx: number }) {
+  const stats = useMemo(() => {
+    const dishIds = new Set<string>();
+    let highProteinDays = 0;
+    let airfryerCount = 0;
+    let paneerCount = 0;
+
+    plan.forEach((d) => {
+      const b = DISHES_BY_ID[d.breakfast];
+      const l = DISHES_BY_ID[d.lunch];
+      const din = DISHES_BY_ID[d.dinner];
+
+      [b, l, din].forEach((dish) => {
+        if (dish) {
+          dishIds.add(dish.id);
+          if (dish.equipment?.includes("airfryer") || dish.tags.includes("airfryer" as any)) airfryerCount++;
+          if (dish.tags.includes("paneer")) paneerCount++;
+        }
+      });
+
+      const dayProtein = (b?.protein ?? 0) + (l?.protein ?? 0) + (din?.protein ?? 0);
+      if (dayProtein >= 60) highProteinDays++;
+    });
+
+    return {
+      uniqueDishes: dishIds.size,
+      highProteinDays,
+      airfryerCount,
+      paneerCount,
+    };
+  }, [plan]);
+
+  const completionPct = Math.round(((dayIdx + 1) / plan.length) * 100);
+
+  return (
+    <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 via-background to-secondary/30 p-5 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/60 pb-3">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Rotation Statistics
+          </div>
+          <div className="font-display text-xl font-bold mt-0.5">
+            {formatCycleDuration(plan.length)} Cycle Insights
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="text-xs font-semibold text-primary">{completionPct}% Completed</div>
+          <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+            <div className="bg-primary h-full rounded-full transition-all duration-300" style={{ width: `${completionPct}%` }} />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div className="rounded-lg bg-secondary/40 p-3">
+          <div className="font-display text-2xl font-bold text-foreground">{stats.uniqueDishes}</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Unique Dishes</div>
+        </div>
+        <div className="rounded-lg bg-secondary/40 p-3">
+          <div className="font-display text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.highProteinDays}</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">High Protein Days</div>
+        </div>
+        <div className="rounded-lg bg-secondary/40 p-3">
+          <div className="font-display text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.airfryerCount}</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Air Fryer Meals</div>
+        </div>
+        <div className="rounded-lg bg-secondary/40 p-3">
+          <div className="font-display text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.paneerCount}</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">Paneer Dishes</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PlannerPage() {
   const { start, length } = useCycleStart();
   const { overrides, setOne, setMany } = useOverrides();
@@ -399,6 +474,8 @@ function PlannerPage() {
       </div>
 
       <DishDetailDialog dish={detailDish} open={detailDish !== null} onOpenChange={(o) => !o && setDetailDish(null)} />
+
+      <CycleStatsCard plan={plan} dayIdx={dayIdx} />
 
       {/* Full Cycle View */}
       <section className="space-y-3 sm:space-y-4">

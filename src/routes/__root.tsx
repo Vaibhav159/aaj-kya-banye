@@ -13,9 +13,16 @@ import { saveCalendarFeed } from "@/lib/calendar-server";
 import { DISHES, type Dish } from "@/lib/dishes";
 import { SNACKS } from "@/lib/snacks";
 import { DishDetailDialog } from "@/components/dish-detail";
-import { Search, Menu, Sparkles, ChevronRight } from "lucide-react";
+import { Search, Menu, Sparkles, ChevronRight, ChevronDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Sheet,
+
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -577,18 +584,6 @@ function SiteHeader({
   onSearchClick: () => void;
   onMenuClick: () => void;
 }) {
-  const links: { to: string; label: string }[] = [
-    { to: "/", label: "Today" },
-    { to: "/planner", label: "Planner" },
-    { to: "/kuch-bhi", label: "Kuch Bhi" },
-    { to: "/history", label: "History" },
-    { to: "/snacks", label: "Snacks" },
-    { to: "/grocery", label: "Grocery" },
-    { to: "/database", label: "Dishes" },
-    { to: "/rules", label: "Rules" },
-    { to: "/settings", label: "Settings" },
-  ];
-
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="mx-auto grid grid-cols-[1fr_auto_auto] md:grid-cols-[auto_1fr_auto] items-center gap-2 md:gap-3 px-4 py-3">
@@ -621,18 +616,82 @@ function SiteHeader({
           <Menu className="h-4 w-4" />
         </button>
 
-        <nav className="hidden md:flex flex-wrap items-center gap-1 text-sm justify-end">
-          {links.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              activeOptions={{ exact: l.to === "/" }}
-              className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              activeProps={{ className: "rounded-full px-3 py-1.5 bg-secondary text-foreground font-medium" }}
-            >
-              {l.label}
-            </Link>
-          ))}
+        <nav className="hidden md:flex items-center gap-1.5 text-sm justify-end">
+          <Link
+            to="/"
+            activeOptions={{ exact: true }}
+            className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            activeProps={{ className: "rounded-full px-3 py-1.5 bg-secondary text-foreground font-medium" }}
+          >
+            Today
+          </Link>
+
+          <Link
+            to="/planner"
+            className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            activeProps={{ className: "rounded-full px-3 py-1.5 bg-secondary text-foreground font-medium" }}
+          >
+            Planner
+          </Link>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-1 rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground outline-none">
+              <span>Explore</span>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 p-1">
+              <DropdownMenuItem asChild>
+                <Link to="/kuch-bhi" className="flex items-center gap-2 cursor-pointer">
+                  <span>🎲</span>
+                  <span>Kuch Bhi Helper</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/snacks" className="flex items-center gap-2 cursor-pointer">
+                  <span>🍿</span>
+                  <span>Snack Finder</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/database" className="flex items-center gap-2 cursor-pointer">
+                  <span>📖</span>
+                  <span>Dishes & Recipes</span>
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Link
+            to="/history"
+            className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            activeProps={{ className: "rounded-full px-3 py-1.5 bg-secondary text-foreground font-medium" }}
+          >
+            History
+          </Link>
+
+          <Link
+            to="/rules"
+            className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            activeProps={{ className: "rounded-full px-3 py-1.5 bg-secondary text-foreground font-medium" }}
+          >
+            Rules
+          </Link>
+
+          <Link
+            to="/grocery"
+            className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            activeProps={{ className: "rounded-full px-3 py-1.5 bg-secondary text-foreground font-medium" }}
+          >
+            Grocery
+          </Link>
+
+          <Link
+            to="/settings"
+            className="rounded-full px-3 py-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            activeProps={{ className: "rounded-full px-3 py-1.5 bg-secondary text-foreground font-medium" }}
+          >
+            Settings
+          </Link>
         </nav>
       </div>
     </header>

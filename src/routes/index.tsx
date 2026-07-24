@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { DISHES, DISHES_BY_ID, dishesForSlot, type Dish, type Slot, CUISINE_LABELS, getDishBase } from "@/lib/dishes";
+import { DISHES, DISHES_BY_ID, dishesForSlot, type Dish, type Slot, CUISINE_LABELS, getDishBase, getDishBadges } from "@/lib/dishes";
 import {
   applyOverrides,
   computeStreak,
@@ -20,7 +20,7 @@ import {
   getMealDisplayStatus,
   type Profile,
 } from "@/lib/store";
-import { Heart } from "lucide-react";
+import { Heart, Sparkles, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
 
 import { checkDay, isSwapAllowed, RULES } from "@/lib/rules";
 import { DishDetailDialog } from "@/components/dish-detail";
@@ -49,6 +49,155 @@ const SLOT_META: Record<Slot, { label: string; emoji: string; time: string }> = 
   lunch: { label: "Lunch", emoji: "🍛", time: "1:00 PM" },
   dinner: { label: "Dinner", emoji: "🌙", time: "8:00 PM" },
 };
+
+function CompanionCard({
+  totals,
+  profile,
+  ruleChecks,
+}: {
+  totals: { kcal: number; protein: number; carbs: number; fat: number };
+  profile: Profile;
+  ruleChecks: ReturnType<typeof checkDay>;
+}) {
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
+
+  const proteinDeficit = profile.goalProtein - totals.protein;
+  const kcalHeadroom = profile.goalKcal - totals.kcal;
+  const failedRules = ruleChecks.filter((c) => !c.passed);
+
+  const kcalScore = Math.max(0, 100 - Math.abs((totals.kcal / profile.goalKcal) - 1) * 100);
+  const proteinScore = Math.min(100, (totals.protein / profile.goalProtein) * 100);
+  const rulesScore = ruleChecks.length ? (ruleChecks.filter((c) => c.passed).length / ruleChecks.length) * 100 : 100;
+  const rawScore = (kcalScore * 0.35 + proteinScore * 0.4 + rulesScore * 0.25) / 10;
+  const companionScore = Math.min(10, Math.max(1, Math.round(rawScore * 10) / 10));
+
+  return (
+    <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-background to-secondary/30 p-5 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-4">
+        <div>
+          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
+            <Sparkles className="h-4 w-4" />
+            <span>Intelligent Meal Companion</span>
+          </div>
+          <h2 className="font-display text-2xl font-bold mt-1">
+            {greeting}, {profile.name}
+          </h2>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="rounded-2xl border border-primary/20 bg-background/80 px-4 py-2 text-center backdrop-blur shadow-xs">
+            <div className="font-display text-2xl font-extrabold text-primary">{companionScore} / 10</div>
+            <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Today's Score</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="space-y-2.5">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">What's missing today?</h3>
+          <div className="space-y-1.5 text-xs sm:text-sm">
+            {proteinDeficit > 15 ? (
+              <div className="flex items-start gap-2 text-amber-700 dark:text-amber-300 bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold">Protein is low ({totals.protein}g / {profile.goalProtein}g)</span>
+                  <p className="text-[11px] opacity-90 mt-0.5">You are {proteinDeficit}g short of your protein target.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>Protein target achieved ({totals.protein}g / {profile.goalProtein}g)</span>
+              </div>
+            )}
+
+            {kcalHeadroom >= 150 ? (
+              <div className="flex items-start gap-2 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
+                <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold">Room for a light snack (~{kcalHeadroom} kcal)</span>
+                  <p className="text-[11px] opacity-90 mt-0.5">{totals.kcal} / {profile.goalKcal} kcal consumed.</p>
+                </div>
+              </div>
+            ) : kcalHeadroom < -150 ? (
+              <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 bg-rose-500/10 p-2.5 rounded-lg border border-rose-500/20">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>150+ kcal over daily target ({totals.kcal} / {profile.goalKcal} kcal)</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>Calorie intake perfectly balanced</span>
+              </div>
+            )}
+
+            {failedRules.length > 0 ? (
+              <div className="flex items-center gap-2 text-amber-700 dark:text-amber-300 bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{failedRules.length} rule violation(s) detected today</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>All active nutrition rules passing</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2.5">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground font-semibold">Recommended Actions</h3>
+          <div className="space-y-2">
+            {proteinDeficit > 15 && (
+              <Link to="/snacks" className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-background hover:bg-secondary/50 transition-colors group">
+                <div className="flex items-center gap-2 text-xs font-medium">
+                  <span className="text-base">🥛</span>
+                  <div>
+                    <div className="font-semibold text-foreground">Add Whey Shake / Greek Yogurt</div>
+                    <div className="text-[11px] text-muted-foreground">+25g protein · Fits calorie headroom</div>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            )}
+
+            {kcalHeadroom >= 150 && (
+              <Link to="/snacks" className="flex items-center justify-between p-2.5 rounded-lg border border-border bg-background hover:bg-secondary/50 transition-colors group">
+                <div className="flex items-center gap-2 text-xs font-medium">
+                  <span className="text-base">🌰</span>
+                  <div>
+                    <div className="font-semibold text-foreground">Roasted Makhana / Sprouts Salad</div>
+                    <div className="text-[11px] text-muted-foreground">~150 kcal · Healthy crunch</div>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            )}
+
+            {failedRules.length > 0 && (
+              <Link to="/rules" className="flex items-center justify-between p-2.5 rounded-lg border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors group">
+                <div className="flex items-center gap-2 text-xs font-medium">
+                  <span className="text-base">⚡</span>
+                  <div>
+                    <div className="font-semibold text-foreground">Fix Rule Warnings</div>
+                    <div className="text-[11px] text-muted-foreground">Automated meal replacement recommendations</div>
+                  </div>
+                </div>
+                <ArrowRight className="h-4 w-4 text-primary group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            )}
+
+            {proteinDeficit <= 15 && kcalHeadroom < 150 && failedRules.length === 0 && (
+              <div className="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 text-xs text-emerald-800 dark:text-emerald-200">
+                🎉 Excellent meal day! Your meals are well balanced according to your macro goals and custom nutrition rules.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 function Dashboard() {
   const { profile } = useProfile();
@@ -88,7 +237,7 @@ function Dashboard() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-wide text-muted-foreground">Day {dayIdx + 1} of {length}</p>
-          <h1 className="font-display text-4xl font-semibold">Hello, {profile.name}</h1>
+          <h1 className="font-display text-4xl font-semibold">Today's Meals</h1>
           <p className="mt-1 text-muted-foreground">
             Here's what you're eating today.
             {streak > 0 && <> · 🔥 <span className="font-medium text-foreground">{streak}-day streak</span></>}
@@ -101,6 +250,8 @@ function Dashboard() {
           <Button size="sm" variant="outline" onClick={onShare}>Share</Button>
         </div>
       </header>
+
+      <CompanionCard totals={totals} profile={profile} ruleChecks={ruleChecks} />
 
       <div className="grid gap-4 md:grid-cols-3">
         {SLOTS.map((slot, i) => (
@@ -212,11 +363,25 @@ function MealCard({
           <Badge variant="secondary" className="text-[10px] font-medium py-0">
             🍞 {base}
           </Badge>
-          {dish.prepMinutes && (
-            <Badge variant="outline" className="text-[10px] py-0">
-              ⏱ {dish.prepMinutes}m
+          {getDishBadges(dish).map((badge, idx) => (
+            <Badge
+              key={idx}
+              variant="outline"
+              className={`text-[10px] py-0 ${
+                badge.variant === "protein"
+                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                  : badge.variant === "light"
+                    ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30"
+                    : badge.variant === "airfryer"
+                      ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                      : badge.variant === "paneer"
+                        ? "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/30"
+                        : ""
+              }`}
+            >
+              {badge.label}
             </Badge>
-          )}
+          ))}
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-center text-xs">
@@ -297,10 +462,38 @@ function NutritionCard({
             </text>
           </svg>
           <div className="flex-1 space-y-2.5">
-            <MacroBar label="Calories" value={totals.kcal} goal={profile.goalKcal} unit="kcal" color="var(--color-chart-1)" />
-            <MacroBar label="Protein" value={totals.protein} goal={profile.goalProtein} unit="g" color="var(--color-primary)" />
-            <MacroBar label="Carbs" value={totals.carbs} goal={profile.goalCarbs} unit="g" color="var(--color-accent)" />
-            <MacroBar label="Fat" value={totals.fat} goal={profile.goalFat} unit="g" color="var(--color-success)" />
+            <MacroBar
+              label="Calories"
+              value={totals.kcal}
+              goal={profile.goalKcal}
+              unit="kcal"
+              color="var(--color-chart-1)"
+              note={profile.goalKcal - totals.kcal > 0 ? `${profile.goalKcal - totals.kcal} kcal room remaining` : 'Target reached'}
+            />
+            <MacroBar
+              label="Protein"
+              value={totals.protein}
+              goal={profile.goalProtein}
+              unit="g"
+              color="var(--color-primary)"
+              note={profile.goalProtein - totals.protein > 0 ? `${profile.goalProtein - totals.protein}g short of protein target` : 'Protein goal hit! 🎉'}
+            />
+            <MacroBar
+              label="Carbs"
+              value={totals.carbs}
+              goal={profile.goalCarbs}
+              unit="g"
+              color="var(--color-accent)"
+              note={totals.carbs > profile.goalCarbs ? `${totals.carbs - profile.goalCarbs}g over limit` : `${profile.goalCarbs - totals.carbs}g remaining`}
+            />
+            <MacroBar
+              label="Fat"
+              value={totals.fat}
+              goal={profile.goalFat}
+              unit="g"
+              color="var(--color-success)"
+              note={profile.goalFat - totals.fat > 0 ? `${profile.goalFat - totals.fat}g remaining` : 'Balanced'}
+            />
           </div>
         </div>
       </CardContent>
@@ -308,17 +501,18 @@ function NutritionCard({
   );
 }
 
-function MacroBar({ label, value, goal, unit = "g", color }: { label: string; value: number; goal: number; unit?: string; color: string }) {
+function MacroBar({ label, value, goal, unit = "g", color, note }: { label: string; value: number; goal: number; unit?: string; color: string; note?: string }) {
   const pct = Math.min(100, Math.round((value / goal) * 100));
   return (
     <div>
-      <div className="mb-1 flex justify-between text-sm">
-        <span className="text-foreground">{label}</span>
+      <div className="mb-1 flex justify-between text-xs sm:text-sm">
+        <span className="text-foreground font-medium">{label}</span>
         <span className="text-muted-foreground">{value}{unit} / {goal}{unit}</span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-muted">
         <div className="h-full rounded-full transition-all duration-300" style={{ width: `${pct}%`, background: color }} />
       </div>
+      {note && <div className="text-[10px] text-muted-foreground mt-0.5">{note}</div>}
     </div>
   );
 }

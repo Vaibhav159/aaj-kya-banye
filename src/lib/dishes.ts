@@ -2848,3 +2848,23 @@ export const DISHES_BY_ID: Record<string, Dish> = Object.fromEntries(DISHES.map(
 export function dishesForSlot(slot: Slot): Dish[] {
   return DISHES.filter((d) => d.slots.includes(slot));
 }
+
+export function getDishBadges(dish: Dish): { label: string; variant: "protein" | "light" | "quick" | "airfryer" | "paneer" | "default" }[] {
+  const badges: { label: string; variant: "protein" | "light" | "quick" | "airfryer" | "paneer" | "default" }[] = [];
+  if (dish.protein >= 20) {
+    badges.push({ label: `High Protein (${dish.protein}g)`, variant: "protein" });
+  }
+  if (dish.kcal <= 350) {
+    badges.push({ label: "Light", variant: "light" });
+  }
+  if (dish.prepMinutes && dish.prepMinutes <= 15) {
+    badges.push({ label: `${dish.prepMinutes}m Quick`, variant: "quick" });
+  }
+  if (dish.equipment?.includes("airfryer") || dish.tags.includes("airfryer" as any)) {
+    badges.push({ label: "Air Fryer", variant: "airfryer" });
+  } else if (dish.tags.includes("paneer")) {
+    badges.push({ label: "Paneer", variant: "paneer" });
+  }
+  return badges;
+}
+
