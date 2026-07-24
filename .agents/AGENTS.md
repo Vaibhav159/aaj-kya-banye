@@ -109,7 +109,8 @@ src/
 │   ├── bottom-nav.tsx         # Mobile bottom navigation
 │   ├── dish-detail.tsx        # Dish detail sheet/modal
 │   ├── onboarding-dialog.tsx  # Multi-step onboarding setup wizard
-│   └── search-planner-dialog.tsx # Search-based meal planning modal
+│   ├── search-planner-dialog.tsx # Search-based meal planning modal
+│   └── weekly-insights-card.tsx # Weekly AI Insights dashboard card component
 │
 ├── hooks/
 │   └── use-mobile.tsx   # Mobile viewport detection
@@ -121,6 +122,7 @@ src/
 │   ├── plan-shuffler.ts # Constraint solver: backtracking + MRV + hill-climbing
 │   ├── rules.ts         # Rule checker (checkDay, isSwapAllowed) for existing plans
 │   ├── custom-rules.ts  # Rules engine, types, classifyRule, checkFeasibility, countMatchingDishes
+│   ├── weekly-insights.ts # Heuristic Weekly AI Insights calculation engine
 │   ├── grocery.ts       # Ingredient aggregation by category
 │   ├── snacks.ts        # 18 snacks with craving-based filtering
 │   ├── ical.ts          # iCal (.ics) generation

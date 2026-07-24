@@ -19,6 +19,7 @@ import { Shuffle, ArrowRight, Sparkles, Heart, Share2, FileText, Link as LinkIco
 
 import { DishDetailDialog } from "@/components/dish-detail";
 import { SearchPlannerDialog } from "@/components/search-planner-dialog";
+import { WeeklyAIInsightsCard } from "@/components/weekly-insights-card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,7 +47,7 @@ function dayProtein(dayIds: [string, string, string]): number {
   return dayIds.reduce((s, id) => s + (DISHES_BY_ID[id]?.protein ?? 0), 0);
 }
 
-function CycleStatsCard({ plan, dayIdx }: { plan: DayPlan[]; dayIdx: number }) {
+function CycleStatsCard({ plan, dayIdx, onOpenInsights }: { plan: DayPlan[]; dayIdx: number; onOpenInsights: () => void }) {
   const { rules: customRules } = useCustomRules();
   const { log } = useMealLog();
   const { start } = useCycleStart();
@@ -126,10 +127,21 @@ function CycleStatsCard({ plan, dayIdx }: { plan: DayPlan[]; dayIdx: number }) {
             {formatCycleDuration(plan.length)} Cycle Insights
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="text-xs font-semibold text-primary">{completionPct}% Completed</div>
-          <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-            <div className="bg-primary h-full rounded-full transition-all duration-300" style={{ width: `${completionPct}%` }} />
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={onOpenInsights}
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1.5 border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 cursor-pointer"
+          >
+            <Sparkles className="h-3 w-3" />
+            AI Insights
+          </Button>
+          <div className="flex items-center gap-2">
+            <div className="text-xs font-semibold text-primary">{completionPct}% Completed</div>
+            <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
+              <div className="bg-primary h-full rounded-full transition-all duration-300" style={{ width: `${completionPct}%` }} />
+            </div>
           </div>
         </div>
       </div>
@@ -181,6 +193,7 @@ function PlannerPage() {
 
   const [isShuffleOpen, setIsShuffleOpen] = useState(false);
   const [isSearchPlannerOpen, setIsSearchPlannerOpen] = useState(false);
+  const [isInsightsOpen, setIsInsightsOpen] = useState(false);
   const [solverResult, setSolverResult] = useState<SolverResult | null>(null);
   const [shuffleRange, setShuffleRange] = useState<"7days" | "full">("7days");
 
@@ -533,7 +546,13 @@ function PlannerPage() {
 
       <DishDetailDialog dish={detailDish} open={detailDish !== null} onOpenChange={(o) => !o && setDetailDish(null)} />
 
-      <CycleStatsCard plan={plan} dayIdx={dayIdx} />
+      <CycleStatsCard plan={plan} dayIdx={dayIdx} onOpenInsights={() => setIsInsightsOpen(true)} />
+
+      <Dialog open={isInsightsOpen} onOpenChange={setIsInsightsOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 border-indigo-500/20">
+          <WeeklyAIInsightsCard plan={plan} dayIdx={dayIdx} />
+        </DialogContent>
+      </Dialog>
 
       {/* Full Cycle View */}
       <section className="space-y-3 sm:space-y-4">
