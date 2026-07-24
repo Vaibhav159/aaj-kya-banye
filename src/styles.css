@@ -194,3 +194,11 @@
   animation: 200ms cubic-bezier(0.215, 0.61, 0.355, 1) both main-slide-in;
 }
 
+/* ponytail: utility for horizontal scroll strips without visible scrollbar */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

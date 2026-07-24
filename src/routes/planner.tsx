@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { DISHES_BY_ID, getDishBase, CUISINE_LABELS, type Dish } from "@/lib/dishes";
+import { DISHES_BY_ID, type Dish } from "@/lib/dishes";
 import { applyOverrides, currentDayIndex, useCycleStart, useOverrides, useFavorites, formatCycleDuration } from "@/lib/store";
 import { type DayPlan } from "@/lib/plan";
 import { shareOrCopy, weekSummary } from "@/lib/share";
@@ -15,7 +15,7 @@ import { drawWeeklyPlan } from "@/lib/share-image";
 import { generateSolvedPlan, type SolverResult } from "@/lib/plan-shuffler";
 import { useCustomRules } from "@/lib/custom-rules";
 import { Shuffle, ArrowRight, Sparkles, Heart, Share2, FileText, Link as LinkIcon, Image as ImageIcon, Calendar, Search } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+
 import { DishDetailDialog } from "@/components/dish-detail";
 import { SearchPlannerDialog } from "@/components/search-planner-dialog";
 import {
@@ -229,175 +229,349 @@ function PlannerPage() {
   };
 
   const [detailDish, setDetailDish] = useState<Dish | null>(null);
+  // ponytail: default to the week containing today's day index
+  const [tableWeek, setTableWeek] = useState<number | "all">(() => Math.floor(dayIdx / 7) + 1);
+  const [tableSearch, setTableSearch] = useState<string>("");
+
   const { isFavorite } = useFavorites();
 
+  const totalWeeks = useMemo(() => Math.ceil(length / 7), [length]);
+
+  const filteredPlan = useMemo(() => {
+    let list = plan;
+    if (tableWeek !== "all") {
+      const startDay = (tableWeek - 1) * 7;
+      const endDay = startDay + 7;
+      list = list.filter((d) => d.day >= startDay && d.day < endDay);
+    }
+    if (tableSearch.trim()) {
+      const q = tableSearch.toLowerCase().trim();
+      list = list.filter((d) => {
+        const b = DISHES_BY_ID[d.breakfast]?.name.toLowerCase() ?? "";
+        const l = DISHES_BY_ID[d.lunch]?.name.toLowerCase() ?? "";
+        const din = DISHES_BY_ID[d.dinner]?.name.toLowerCase() ?? "";
+        return b.includes(q) || l.includes(q) || din.includes(q) || (d.day + 1).toString() === q;
+      });
+    }
+    return list;
+  }, [plan, tableWeek, tableSearch]);
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm uppercase tracking-wide text-muted-foreground">Weekly Planner</p>
-          <h1 className="font-display text-4xl font-semibold">Next 7 days</h1>
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8 space-y-6 sm:space-y-10 pb-24 md:pb-8">
+      {/* Header */}
+      <header className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">
+            Meal Planner
+          </p>
+          <h1 className="font-display text-2xl sm:text-4xl font-semibold tracking-tight">
+            This Week
+          </h1>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <Button
             onClick={() => {
               setIsShuffleOpen(true);
               startShuffle("7days");
             }}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white shadow-xs cursor-pointer"
+            size="sm"
+            className="flex items-center gap-1.5 cursor-pointer"
           >
-            <Sparkles className="h-4 w-4" /> Generate Plan
+            <Sparkles className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Shuffle Plan</span>
           </Button>
-          <Button onClick={() => setIsShuffleOpen(true)} variant="outline" className="flex items-center gap-1.5 cursor-pointer">
-            <Shuffle className="h-4 w-4" /> Shuffle / Rotate
+          <Button onClick={() => setIsSearchPlannerOpen(true)} variant="outline" size="sm" className="flex items-center gap-1.5 cursor-pointer">
+            <Search className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Search & Plan</span>
           </Button>
-          <Button onClick={() => setIsSearchPlannerOpen(true)} variant="outline" className="flex items-center gap-1.5 cursor-pointer">
-            <Search className="h-4 w-4" /> Search & Plan
-          </Button>
-          {/* ponytail: consolidated 4 separate share buttons into a single DropdownMenu to declutter the toolbar UI */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="flex items-center gap-1.5 cursor-pointer">
-                <Share2 className="h-4 w-4" /> Share
+              <Button variant="outline" size="sm" className="cursor-pointer px-2 sm:px-3">
+                <Share2 className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onShare} className="cursor-pointer">
-                <FileText className="h-4 w-4 mr-2" /> Share text summary
+                <FileText className="h-4 w-4 mr-2" /> Text summary
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onShareLink} className="cursor-pointer">
-                <LinkIcon className="h-4 w-4 mr-2" /> Share plan link
+                <LinkIcon className="h-4 w-4 mr-2" /> Plan link
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onShareImage} className="cursor-pointer">
-                <ImageIcon className="h-4 w-4 mr-2" /> Share plan image
+                <ImageIcon className="h-4 w-4 mr-2" /> Plan image
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onIcs} className="cursor-pointer">
-                <Calendar className="h-4 w-4 mr-2" /> Export calendar (.ics)
+                <Calendar className="h-4 w-4 mr-2" /> Export .ics
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </header>
 
-      <div className="grid gap-3 md:grid-cols-7">
-        {week.map((d, i) => {
-          const date = new Date(startDate.getTime() + i * 86400000);
-          const kcal = dayKcal([d.breakfast, d.lunch, d.dinner]);
-          return (
-            <Card key={i} className={i === 0 ? "border-primary shadow-md" : ""}>
-              <CardContent className="p-3">
-                <div className="text-xs uppercase text-muted-foreground">{dayLabels[date.getDay()]}</div>
-                <div className="font-display text-2xl font-semibold">{date.getDate()}</div>
-                <div className="mt-1 text-[11px] text-muted-foreground">Day {d.day + 1}</div>
-                <div className="mt-1 font-medium text-primary text-xs">{kcal} kcal</div>
-                <ul className="mt-3 space-y-2 text-xs">
-                  {(["breakfast", "lunch", "dinner"] as const).map((slot) => {
+      {/* 7 Days — horizontal scroll strip */}
+      <div className="-mx-4 px-4">
+        <div className="flex gap-2.5 overflow-x-auto pb-2 snap-x snap-mandatory no-scrollbar">
+          {week.map((d, i) => {
+            const date = new Date(startDate.getTime() + i * 86400000);
+            const kcal = dayKcal([d.breakfast, d.lunch, d.dinner]);
+            const isToday = i === 0;
+            const slots = ["breakfast", "lunch", "dinner"] as const;
+            const slotLabels = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner" } as const;
+
+            return (
+              <div
+                key={i}
+                className={`shrink-0 snap-start w-[155px] sm:w-[200px] md:w-[220px] rounded-xl border transition-all duration-200 ${
+                  isToday
+                    ? "border-primary/50 bg-primary/[0.04] dark:bg-primary/[0.08] shadow-md ring-1 ring-primary/20"
+                    : "border-border/60 bg-card hover:shadow-xs hover:border-border"
+                }`}
+              >
+                {/* Card header */}
+                <div className={`px-3 pt-2.5 pb-1.5 sm:px-3.5 sm:pt-3 sm:pb-2 ${isToday ? "border-b border-primary/15" : "border-b border-border/40"}`}>
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {dayLabels[date.getDay()]}
+                    </span>
+                    {isToday && (
+                      <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-primary">
+                        Today
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-display text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                      {date.getDate()}
+                    </span>
+                    <span className="text-[10px] sm:text-[11px] font-medium text-primary tabular-nums">
+                      {kcal}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Meals */}
+                <div className="p-1.5 sm:p-2 space-y-0.5 sm:space-y-1.5">
+                  {slots.map((slot) => {
                     const dishId = d[slot];
                     const dish = DISHES_BY_ID[dishId];
                     if (!dish) return null;
-                    const base = getDishBase(dish);
                     const fav = isFavorite(dish.id);
+
                     return (
-                      <li
-                        key={slot}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, d.day, slot, dishId)}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, d.day, slot)}
-                        onClick={() => setDetailDish(dish)}
-                        className="group flex flex-col gap-1 cursor-grab active:cursor-grabbing hover:bg-secondary/70 rounded p-1.5 transition-colors border border-transparent hover:border-border select-none"
-                        title="Click to view details, or drag to swap meal"
-                      >
-                        <div className="flex items-center gap-1.5 justify-between">
-                          <div className="flex items-center gap-1 min-w-0">
-                            <span className="text-sm shrink-0">{dish.emoji}</span>
-                            <span className="truncate font-medium text-foreground/90">{dish.name}</span>
-                          </div>
-                          {fav && <Heart className="h-3 w-3 fill-rose-500 text-rose-500 shrink-0" />}
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <span className="capitalize text-muted-foreground/80">{slot[0].toUpperCase()}</span>
-                          <span>·</span>
-                          <span className="font-medium text-primary/80">{base}</span>
-                        </div>
-                      </li>
+                      <TooltipProvider key={slot}>
+                        <Tooltip delayDuration={200}>
+                          <TooltipTrigger asChild>
+                            <div
+                              draggable
+                              onDragStart={(e) => handleDragStart(e, d.day, slot, dishId)}
+                              onDragOver={handleDragOver}
+                              onDrop={(e) => handleDrop(e, d.day, slot)}
+                              onClick={() => setDetailDish(dish)}
+                              className="group rounded-md px-2 py-1.5 sm:px-2.5 sm:py-2 hover:bg-secondary/60 cursor-grab active:cursor-grabbing transition-colors select-none"
+                            >
+                              <div className="text-[9px] sm:text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 mb-0.5">
+                                {slotLabels[slot]}
+                              </div>
+                              <div className="flex items-center gap-1 sm:gap-1.5">
+                                <span className="text-xs sm:text-sm shrink-0 leading-none">{dish.emoji}</span>
+                                <span className="text-[11px] sm:text-[13px] font-medium text-foreground leading-snug line-clamp-2">
+                                  {dish.name}
+                                </span>
+                                {fav && <Heart className="h-2.5 w-2.5 sm:h-3 sm:w-3 fill-rose-500 text-rose-500 shrink-0 ml-auto" />}
+                              </div>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs p-2.5 space-y-1 max-w-[220px]">
+                            <div className="font-semibold">{dish.emoji} {dish.name}</div>
+                            <div className="text-muted-foreground">
+                              {dish.kcal} kcal · P {dish.protein}g · C {dish.carbs}g · F {dish.fat}g
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     );
                   })}
-                </ul>
-              </CardContent>
-            </Card>
-          );
-        })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <DishDetailDialog dish={detailDish} open={detailDish !== null} onOpenChange={(o) => !o && setDetailDish(null)} />
 
+      {/* Full Cycle View */}
+      <section className="space-y-3 sm:space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 sm:gap-4">
+          <div>
+            <h2 className="font-display text-xl sm:text-2xl font-semibold tracking-tight">
+              Full Cycle
+            </h2>
+            <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">
+              {formatCycleDuration(length)} rotation · Day {dayIdx + 1} of {length}
+            </p>
+          </div>
+          <div className="relative w-full sm:w-56">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search meals..."
+              value={tableSearch}
+              onChange={(e) => setTableSearch(e.target.value)}
+              className="w-full bg-secondary/40 border border-input rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+            />
+          </div>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-display text-2xl">Full {formatCycleDuration(length)} cycle</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+        {/* Week Tabs */}
+        {totalWeeks > 1 && (
+          <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            <button
+              type="button"
+              onClick={() => setTableWeek("all")}
+              className={`px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium cursor-pointer transition-colors whitespace-nowrap ${
+                tableWeek === "all"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+              }`}
+            >
+              All
+            </button>
+            {Array.from({ length: totalWeeks }, (_, idx) => idx + 1).map((wNum) => (
+              <button
+                key={wNum}
+                type="button"
+                onClick={() => setTableWeek(wNum)}
+                className={`px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-medium cursor-pointer transition-colors whitespace-nowrap ${
+                  tableWeek === wNum
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+              >
+                Wk {wNum}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Mobile: stacked card list — day header sticks while scrolling */}
+        <div className="md:hidden space-y-2">
+          {filteredPlan.map((d) => {
+            const kcal = dayKcal([d.breakfast, d.lunch, d.dinner]);
+            const isToday = d.day === dayIdx;
+            return (
+              <div
+                key={d.day}
+                className={`rounded-lg border p-3 transition-colors ${
+                  isToday
+                    ? "border-primary/40 bg-primary/[0.04] dark:bg-primary/[0.08]"
+                    : "border-border/50 bg-card"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs font-semibold ${isToday ? "text-primary" : "text-foreground"}`}>
+                    Day {d.day + 1}{isToday ? " · today" : ""}
+                  </span>
+                  <span className="text-[11px] font-medium text-muted-foreground tabular-nums">{kcal} kcal</span>
+                </div>
+                <div className="space-y-1.5">
+                  {(["breakfast", "lunch", "dinner"] as const).map((slot) => {
+                    const dish = DISHES_BY_ID[d[slot]];
+                    if (!dish) return null;
+                    return (
+                      <div
+                        key={slot}
+                        className="flex items-center gap-2 text-[12px] py-1 px-1.5 rounded hover:bg-secondary/50 cursor-grab active:cursor-grabbing select-none transition-colors"
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, d.day, slot, d[slot])}
+                        onDragOver={handleDragOver}
+                        onDrop={(e) => handleDrop(e, d.day, slot)}
+                      >
+                        <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground w-8 shrink-0">
+                          {slot === "breakfast" ? "B" : slot === "lunch" ? "L" : "D"}
+                        </span>
+                        <span className="shrink-0">{dish.emoji}</span>
+                        <span className="text-foreground font-medium">{dish.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          {filteredPlan.length === 0 && (
+            <div className="text-center py-10 text-muted-foreground text-sm">
+              No meals found for "{tableSearch}"
+            </div>
+          )}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="hidden md:block rounded-xl border border-border/60 overflow-hidden bg-card">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-sm">
-              <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-2">Day</th>
-                  <th className="px-4 py-2">Breakfast</th>
-                  <th className="px-4 py-2">Lunch</th>
-                  <th className="px-4 py-2">Dinner</th>
-                  <th className="px-4 py-2 text-right">kcal</th>
+            <table className="w-full text-[13px]">
+              <thead className="sticky top-0 z-10">
+                <tr className="border-b border-border/50 bg-secondary/80 backdrop-blur-sm">
+                  <th className="px-4 py-2.5 text-left text-[11px] uppercase tracking-wider font-semibold text-muted-foreground w-20">Day</th>
+                  <th className="px-4 py-2.5 text-left text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Breakfast</th>
+                  <th className="px-4 py-2.5 text-left text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Lunch</th>
+                  <th className="px-4 py-2.5 text-left text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Dinner</th>
+                  <th className="px-4 py-2.5 text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground w-20">kcal</th>
                 </tr>
               </thead>
               <tbody>
-                {plan.map((d) => {
+                {filteredPlan.map((d, idx) => {
                   const kcal = dayKcal([d.breakfast, d.lunch, d.dinner]);
                   const isToday = d.day === dayIdx;
                   return (
                     <tr
                       key={d.day}
                       className={
-                        "border-t border-border/60 " +
-                        (isToday ? "bg-primary/10 font-medium" : "hover:bg-secondary/30")
+                        (idx > 0 ? "border-t border-border/30 " : "") +
+                        (isToday
+                          ? "bg-primary/[0.06] dark:bg-primary/[0.1]"
+                          : "hover:bg-secondary/30") +
+                        " transition-colors"
                       }
                     >
-                      <td className="px-4 py-2">{d.day + 1}{isToday ? " · today" : ""}</td>
-                      <td
-                        className="px-4 py-2 cursor-grab active:cursor-grabbing hover:bg-secondary/60 rounded transition-colors select-none"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, d.day, "breakfast", d.breakfast)}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, d.day, "breakfast")}
-                      >
-                        {DISHES_BY_ID[d.breakfast]?.emoji} {DISHES_BY_ID[d.breakfast]?.name}
+                      <td className="px-4 py-2.5 font-medium text-foreground whitespace-nowrap">
+                        {isToday ? (
+                          <span className="text-primary font-semibold">{d.day + 1} · today</span>
+                        ) : (
+                          <span className="text-muted-foreground">{d.day + 1}</span>
+                        )}
                       </td>
-                      <td
-                        className="px-4 py-2 cursor-grab active:cursor-grabbing hover:bg-secondary/60 rounded transition-colors select-none"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, d.day, "lunch", d.lunch)}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, d.day, "lunch")}
-                      >
-                        {DISHES_BY_ID[d.lunch]?.emoji} {DISHES_BY_ID[d.lunch]?.name}
+                      {(["breakfast", "lunch", "dinner"] as const).map((slot) => (
+                        <td
+                          key={slot}
+                          className="px-4 py-2.5 cursor-grab active:cursor-grabbing hover:bg-secondary/50 rounded transition-colors select-none"
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, d.day, slot, d[slot])}
+                          onDragOver={handleDragOver}
+                          onDrop={(e) => handleDrop(e, d.day, slot)}
+                        >
+                          <span className="mr-1.5">{DISHES_BY_ID[d[slot]]?.emoji}</span>
+                          <span className="text-foreground/90">{DISHES_BY_ID[d[slot]]?.name}</span>
+                        </td>
+                      ))}
+                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground font-medium">
+                        {kcal}
                       </td>
-                      <td
-                        className="px-4 py-2 cursor-grab active:cursor-grabbing hover:bg-secondary/60 rounded transition-colors select-none"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, d.day, "dinner", d.dinner)}
-                        onDragOver={handleDragOver}
-                        onDrop={(e) => handleDrop(e, d.day, "dinner")}
-                      >
-                        {DISHES_BY_ID[d.dinner]?.emoji} {DISHES_BY_ID[d.dinner]?.name}
-                      </td>
-                      <td className="px-4 py-2 text-right">{kcal}</td>
                     </tr>
                   );
                 })}
+                {filteredPlan.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="text-center py-10 text-muted-foreground text-sm">
+                      No meals found for "{tableSearch}"
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
       <canvas ref={canvasRef} className="hidden" />
 
       <Dialog open={isShuffleOpen} onOpenChange={(open) => {
