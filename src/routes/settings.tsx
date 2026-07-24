@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DEFAULT_PROFILE, useCycleStart, useProfile, type Profile, syncAllData, readLS } from "@/lib/store";
+import { DEFAULT_PROFILE, useCycleStart, useProfile, type Profile, syncAllData, readLS, calculateDailyGoals, type ActivityLevel, type GoalPace } from "@/lib/store";
 import { buildIcs, downloadIcs } from "@/lib/ical";
 import { applyOverrides, currentDayIndex, useOverrides } from "@/lib/store";
 import { saveCalendarFeed } from "@/lib/calendar-server";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useTheme } from "@/lib/theme";
-import { Sun, Moon, Monitor, Sparkles } from "lucide-react";
+import { Sun, Moon, Monitor, Sparkles, Calculator, Flame } from "lucide-react";
 import { OnboardingDialog } from "@/components/onboarding-dialog";
 
 export const Route = createFileRoute("/settings")({
@@ -315,40 +315,7 @@ function SettingsPage() {
 
   const update = <K extends keyof Profile>(k: K, v: Profile[K]) => setForm((f) => ({ ...f, [k]: v }));
 
-  const calculateGoals = () => {
-    const { weightKg, targetKg } = form;
-    if (!weightKg || !targetKg) {
-      toast.error("Please enter both Weight and Target weight first!");
-      return;
-    }
-    
-    // Baseline Maintenance: weightKg * 30
-    const maintenance = weightKg * 30;
-    let kcal = maintenance;
-    
-    if (targetKg < weightKg) {
-      // Weight loss deficit: -400 kcal (cap at 1200 kcal min)
-      kcal = Math.max(1200, maintenance - 400);
-    } else if (targetKg > weightKg) {
-      // Weight gain surplus: +300 kcal
-      kcal = maintenance + 300;
-    }
-    
-    const goalKcal = Math.round(kcal);
-    const goalProtein = Math.round(targetKg * 1.8);
-    const goalFat = Math.round((goalKcal * 0.25) / 9);
-    const goalCarbs = Math.round((goalKcal - (goalProtein * 4) - (goalFat * 9)) / 4);
-    
-    setForm((prev) => ({
-      ...prev,
-      goalKcal,
-      goalProtein,
-      goalCarbs,
-      goalFat,
-    }));
-    
-    toast.success(`Goals auto-calculated for target weight ${targetKg} kg!`);
-  };
+  const liveCalculated = calculateDailyGoals(form);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
@@ -367,10 +334,20 @@ function SettingsPage() {
       </header>
 
       <Card>
-        <CardHeader><CardTitle>You</CardTitle></CardHeader>
+        <CardHeader><CardTitle>You & Biometrics</CardTitle></CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <Field label="Name">
             <Input value={form.name} onChange={(e) => update("name", e.target.value)} />
+          </Field>
+          <Field label="Gender">
+            <select
+              value={form.gender || "male"}
+              onChange={(e) => update("gender", e.target.value as "male" | "female")}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
           </Field>
           <Field label="Weight (kg)">
             <Input type="number" value={form.weightKg} onChange={(e) => update("weightKg", Number(e.target.value))} />
@@ -378,6 +355,76 @@ function SettingsPage() {
           <Field label="Target weight (kg)">
             <Input type="number" value={form.targetKg} onChange={(e) => update("targetKg", Number(e.target.value))} />
           </Field>
+          <Field label="Height (cm)">
+            <Input type="number" value={form.heightCm || 170} onChange={(e) => update("heightCm", Number(e.target.value))} />
+          </Field>
+          <Field label="Age (years)">
+            <Input type="number" value={form.age || 28} onChange={(e) => update("age", Number(e.target.value))} />
+          </Field>
+          <Field label="Daily Activity Level">
+            <select
+              value={form.activityLevel || "light"}
+              onChange={(e) => update("activityLevel", e.target.value as ActivityLevel)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="sedentary">Sedentary (Desk job, minimal exercise)</option>
+              <option value="light">Lightly Active (Light exercise 1-3 days/wk)</option>
+              <option value="moderate">Moderately Active (Moderate exercise 3-5 days/wk)</option>
+              <option value="active">Very Active (Hard exercise 6-7 days/wk)</option>
+              <option value="very_active">Extra Active (Physical job / 2x training)</option>
+            </select>
+          </Field>
+          <Field label="Goal Pace">
+            <select
+              value={form.pace || "moderate"}
+              onChange={(e) => update("pace", e.target.value as GoalPace)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="mild">Mild (0.25 kg / week)</option>
+              <option value="moderate">Moderate (0.50 kg / week)</option>
+              <option value="aggressive">Aggressive (0.75 kg / week)</option>
+            </select>
+          </Field>
+        </CardContent>
+      </Card>
+
+      <Card className="border-primary/30 bg-primary/5 dark:bg-primary/10">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Calculator className="h-4 w-4 text-primary" />
+            Scientific BMR, TDEE & Daily Goals Recommendation
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-center">
+            <div className="p-2.5 rounded-lg bg-background border">
+              <p className="text-xs text-muted-foreground">BMR</p>
+              <p className="font-semibold text-base">{liveCalculated.bmr} <span className="text-xs text-muted-foreground">kcal</span></p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-background border">
+              <p className="text-xs text-muted-foreground">TDEE</p>
+              <p className="font-semibold text-base">{liveCalculated.tdee} <span className="text-xs text-muted-foreground">kcal</span></p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-primary/10 border border-primary/20">
+              <p className="text-xs text-primary font-medium">Daily Calories</p>
+              <p className="font-bold text-base text-primary">{liveCalculated.goalKcal} <span className="text-xs">kcal</span></p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-background border">
+              <p className="text-xs text-muted-foreground">Protein Target</p>
+              <p className="font-semibold text-base">{liveCalculated.goalProtein} <span className="text-xs text-muted-foreground">g</span></p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-background border">
+              <p className="text-xs text-muted-foreground">Carbs Target</p>
+              <p className="font-semibold text-base">{liveCalculated.goalCarbs} <span className="text-xs text-muted-foreground">g</span></p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-background border">
+              <p className="text-xs text-muted-foreground">Fat Target</p>
+              <p className="font-semibold text-base">{liveCalculated.goalFat} <span className="text-xs text-muted-foreground">g</span></p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Based on Mifflin-St Jeor equation (BMR = {liveCalculated.bmr} kcal) and TDEE maintenance of {liveCalculated.tdee} kcal.
+          </p>
         </CardContent>
       </Card>
 
@@ -433,27 +480,6 @@ function SettingsPage() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle>Daily goals</CardTitle>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={calculateGoals}
-            className="text-xs"
-            type="button"
-          >
-            Auto-calculate
-          </Button>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field label="Calories (kcal)"><Input type="number" value={form.goalKcal} onChange={(e) => update("goalKcal", Number(e.target.value))} /></Field>
-          <Field label="Protein (g)"><Input type="number" value={form.goalProtein} onChange={(e) => update("goalProtein", Number(e.target.value))} /></Field>
-          <Field label="Carbs (g)"><Input type="number" value={form.goalCarbs} onChange={(e) => update("goalCarbs", Number(e.target.value))} /></Field>
-          <Field label="Fat (g)"><Input type="number" value={form.goalFat} onChange={(e) => update("goalFat", Number(e.target.value))} /></Field>
-        </CardContent>
-      </Card>
-
-      <Card>
         <CardHeader><CardTitle>Reminder timing</CardTitle></CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">
           <Field label="Breakfast"><Input type="time" value={form.breakfastTime} onChange={(e) => update("breakfastTime", e.target.value)} /></Field>
@@ -463,7 +489,17 @@ function SettingsPage() {
       </Card>
 
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => { save(form); toast.success("Settings saved"); }}>Save</Button>
+        <Button onClick={() => { 
+          const profileToSave = {
+            ...form,
+            goalKcal: liveCalculated.goalKcal,
+            goalProtein: liveCalculated.goalProtein,
+            goalCarbs: liveCalculated.goalCarbs,
+            goalFat: liveCalculated.goalFat,
+          };
+          save(profileToSave); 
+          toast.success("Settings saved"); 
+        }}>Save</Button>
         <Button variant="outline" onClick={() => { reset(); toast.success("Cycle restarted at day 1"); }}>Restart 42-day cycle</Button>
       </div>
 
