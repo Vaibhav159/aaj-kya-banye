@@ -13,7 +13,7 @@ import { saveCalendarFeed } from "@/lib/calendar-server";
 import { DISHES, type Dish } from "@/lib/dishes";
 import { SNACKS } from "@/lib/snacks";
 import { DishDetailDialog } from "@/components/dish-detail";
-import { Search, Sun, Moon, Monitor, Menu, Sparkles, ChevronRight } from "lucide-react";
+import { Search, Menu, Sparkles, ChevronRight } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -21,7 +21,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { useTheme, type ThemeMode } from "@/lib/theme";
 import {
   CommandDialog,
   CommandEmpty,
@@ -578,7 +577,6 @@ function SiteHeader({
   onSearchClick: () => void;
   onMenuClick: () => void;
 }) {
-  const { theme, setTheme, resolvedTheme } = useTheme();
   const links: { to: string; label: string }[] = [
     { to: "/", label: "Today" },
     { to: "/planner", label: "Planner" },
@@ -591,15 +589,9 @@ function SiteHeader({
     { to: "/settings", label: "Settings" },
   ];
 
-  const cycleTheme = () => {
-    if (theme === "system") setTheme("light");
-    else if (theme === "light") setTheme("dark");
-    else setTheme("system");
-  };
-
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="mx-auto grid grid-cols-[1fr_auto_auto_auto] md:grid-cols-[auto_1fr_auto_auto] items-center gap-2 md:gap-3 px-4 py-3">
+      <div className="mx-auto grid grid-cols-[1fr_auto_auto] md:grid-cols-[auto_1fr_auto] items-center gap-2 md:gap-3 px-4 py-3">
         <Link to="/" className="flex min-w-0 items-center gap-2.5">
           <img src={logoSvg} alt="Aaj Kya Banaye Logo" className="h-9 w-9 shrink-0 drop-shadow-sm" />
           <span className="truncate font-display text-xl font-semibold">Aaj Kya Banaye?</span>
@@ -617,24 +609,6 @@ function SiteHeader({
           <kbd className="pointer-events-none hidden md:inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground ml-auto">
             <span className="text-xs">⌘</span>K
           </kbd>
-        </button>
-
-        {/* Theme Mode Toggle button */}
-        <button
-          type="button"
-          suppressHydrationWarning
-          aria-label={`Current theme: ${theme}. Click to change.`}
-          title={`Theme: ${theme.toUpperCase()} (Click to toggle)`}
-          onClick={cycleTheme}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-secondary/50 text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring select-none shrink-0"
-        >
-          {theme === "system" ? (
-            <Monitor className="h-4 w-4 text-muted-foreground" />
-          ) : resolvedTheme === "dark" ? (
-            <Moon className="h-4 w-4 text-amber-400" />
-          ) : (
-            <Sun className="h-4 w-4 text-amber-600" />
-          )}
         </button>
 
         {/* Mobile Menu Button */}
