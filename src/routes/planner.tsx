@@ -42,6 +42,10 @@ function dayKcal(dayIds: [string, string, string]): number {
   return dayIds.reduce((s, id) => s + (DISHES_BY_ID[id]?.kcal ?? 0), 0);
 }
 
+function dayProtein(dayIds: [string, string, string]): number {
+  return dayIds.reduce((s, id) => s + (DISHES_BY_ID[id]?.protein ?? 0), 0);
+}
+
 function CycleStatsCard({ plan, dayIdx }: { plan: DayPlan[]; dayIdx: number }) {
   const { rules: customRules } = useCustomRules();
   const { log } = useMealLog();
@@ -441,6 +445,7 @@ function PlannerPage() {
           {week.map((d, i) => {
             const date = new Date(startDate.getTime() + i * 86400000);
             const kcal = dayKcal([d.breakfast, d.lunch, d.dinner]);
+            const protein = dayProtein([d.breakfast, d.lunch, d.dinner]);
             const isToday = i === 0;
             const slots = ["breakfast", "lunch", "dinner"] as const;
             const slotLabels = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner" } as const;
@@ -470,9 +475,10 @@ function PlannerPage() {
                     <span className="font-display text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                       {date.getDate()}
                     </span>
-                    <span className="text-[10px] sm:text-[11px] font-medium text-primary tabular-nums">
-                      {kcal}
-                    </span>
+                    <div className="flex flex-col items-end text-[10px] sm:text-[11px] font-semibold tabular-nums text-right">
+                      <span className="text-primary">{kcal} kcal</span>
+                      <span className="text-emerald-600 dark:text-emerald-400">{protein}g protein</span>
+                    </div>
                   </div>
                 </div>
 
@@ -587,6 +593,7 @@ function PlannerPage() {
         <div className="md:hidden space-y-2">
           {filteredPlan.map((d) => {
             const kcal = dayKcal([d.breakfast, d.lunch, d.dinner]);
+            const protein = dayProtein([d.breakfast, d.lunch, d.dinner]);
             const isToday = d.day === dayIdx;
             return (
               <div
@@ -601,7 +608,10 @@ function PlannerPage() {
                   <span className={`text-xs font-semibold ${isToday ? "text-primary" : "text-foreground"}`}>
                     Day {d.day + 1}{isToday ? " · today" : ""}
                   </span>
-                  <span className="text-[11px] font-medium text-muted-foreground tabular-nums">{kcal} kcal</span>
+                  <div className="flex items-center gap-2 text-[11px] font-medium tabular-nums">
+                    <span className="text-muted-foreground">{kcal} kcal</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{protein}g protein</span>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   {(["breakfast", "lunch", "dinner"] as const).map((slot) => {
@@ -646,11 +656,13 @@ function PlannerPage() {
                   <th className="px-4 py-2.5 text-left text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Lunch</th>
                   <th className="px-4 py-2.5 text-left text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">Dinner</th>
                   <th className="px-4 py-2.5 text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground w-20">kcal</th>
+                  <th className="px-4 py-2.5 text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground w-24">Protein</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredPlan.map((d, idx) => {
                   const kcal = dayKcal([d.breakfast, d.lunch, d.dinner]);
+                  const protein = dayProtein([d.breakfast, d.lunch, d.dinner]);
                   const isToday = d.day === dayIdx;
                   return (
                     <tr
@@ -685,6 +697,9 @@ function PlannerPage() {
                       ))}
                       <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground font-medium">
                         {kcal}
+                      </td>
+                      <td className="px-4 py-2.5 text-right tabular-nums text-emerald-600 dark:text-emerald-400 font-semibold">
+                        {protein}g
                       </td>
                     </tr>
                   );

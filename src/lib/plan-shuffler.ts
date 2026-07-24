@@ -281,8 +281,15 @@ function scorePlan(
       }
     }
 
+    // High protein day bonus (>= 55g protein)
+    const dayDishes = [grid[dIdx][0], grid[dIdx][1], grid[dIdx][2]].filter((id): id is string => Boolean(id));
+    const dayProteinTotal = dayDishes.reduce((sum, id) => sum + (DISHES_BY_ID[id]?.protein ?? 0), 0);
+    if (dayProteinTotal >= 55) {
+      score += 1;
+    }
+    maxScore += 1;
+
     // No-repeat bonus: check if any dish repeats within ±2 days
-    const dayDishes = [grid[dIdx][0], grid[dIdx][1], grid[dIdx][2]].filter(Boolean);
     let noRepeatBonus = 1;
     for (const id of dayDishes) {
       for (let offset = -2; offset <= 2; offset++) {

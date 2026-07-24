@@ -107,11 +107,13 @@ export function drawWeeklyPlan(canvas: HTMLCanvasElement, { plan, startIdx, days
     ];
 
     let totalKcal = 0;
+    let totalProtein = 0;
 
     slots.forEach((slot) => {
       const dish = DISHES_BY_ID[slot.id];
       if (!dish) return;
       totalKcal += dish.kcal;
+      totalProtein += dish.protein;
 
       // Slot Label
       ctx.fillStyle = slot.color;
@@ -161,15 +163,15 @@ export function drawWeeklyPlan(canvas: HTMLCanvasElement, { plan, startIdx, days
     ctx.lineTo(width - paddingX - 95, rowY + rowHeight - 16);
     ctx.stroke();
 
-    // Column 5: Total kcal
+    // Column 5: Total kcal & protein
     ctx.fillStyle = "#10b981"; // Emerald
-    ctx.font = "bold 15px Inter, sans-serif";
+    ctx.font = "bold 14px Inter, sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(`${totalKcal}`, width - paddingX - 48, rowY + rowHeight / 2 - 2);
+    ctx.fillText(`${totalKcal} kcal`, width - paddingX - 48, rowY + rowHeight / 2 - 6);
 
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "500 11px Inter, sans-serif";
-    ctx.fillText("kcal", width - paddingX - 48, rowY + rowHeight / 2 + 14);
+    ctx.fillStyle = "#34d399";
+    ctx.font = "600 11px Inter, sans-serif";
+    ctx.fillText(`${totalProtein}g protein`, width - paddingX - 48, rowY + rowHeight / 2 + 12);
     ctx.textAlign = "left"; // reset alignment
   }
 

@@ -320,6 +320,7 @@ function MealCard({
   onSwap: () => void;
   onDetails: () => void;
   status: "eaten" | "skipped" | undefined;
+  onToggle: (status: "eaten" | "skipped" | null) => void;
 }) {
   const meta = SLOT_META[slot];
   const { isFavorite, toggleFavorite } = useFavorites();
