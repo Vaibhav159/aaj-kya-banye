@@ -177,13 +177,28 @@ async function syncProfile(profile: Profile) {
   }
 }
 
-async function syncCycleStart(startTime: number) {
+async function syncFavorites(favorites: string[]) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase.from("profiles").upsert({
+      id: user.id,
+      favorites,
+      updated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error("Favorites sync error:", err);
+  }
+}
+
+async function syncCycleStart(startTime: number, cycleLength: number = 42) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase.from("cycle_starts").upsert({
       id: user.id,
       start_time: startTime,
+      cycle_length: cycleLength,
       updated_at: new Date().toISOString(),
     });
   } catch (err) {
@@ -293,9 +308,14 @@ export async function syncAllData() {
         window.localStorage.setItem("thali:theme", remoteProfile.theme);
         applyTheme(remoteProfile.theme as any);
       }
+      if (remoteProfile.favorites && Array.from(remoteProfile.favorites)) {
+        window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(remoteProfile.favorites));
+      }
     } else {
       const localProfile = readLS<Partial<Profile>>(PROFILE_KEY, {});
       await syncProfile({ ...DEFAULT_PROFILE, ...localProfile });
+      const localFavorites = readLS<string[]>(FAVORITES_KEY, []);
+      if (localFavorites.length > 0) await syncFavorites(localFavorites);
     }
 
     // 2. Sync Cycle Start
@@ -311,9 +331,13 @@ export async function syncAllData() {
 
     if (remoteCycle) {
       window.localStorage.setItem(CYCLE_KEY, JSON.stringify(remoteCycle.start_time));
+      if (remoteCycle.cycle_length) {
+        window.localStorage.setItem(CYCLE_LENGTH_KEY, JSON.stringify(remoteCycle.cycle_length));
+      }
     } else {
       const localCycle = readLS<number | null>(CYCLE_KEY, null);
-      if (localCycle) await syncCycleStart(localCycle);
+      const localLength = readLS<number>(CYCLE_LENGTH_KEY, 42);
+      if (localCycle) await syncCycleStart(localCycle, localLength);
     }
 
     // 3. Sync Overrides
@@ -568,21 +592,22 @@ export function useCycleStart() {
     const time = midnight.getTime();
     setStart(time);
     if (typeof window !== "undefined") window.localStorage.setItem(CYCLE_KEY, JSON.stringify(time));
-    syncCycleStart(time);
-  }, []);
+    syncCycleStart(time, length);
+  }, [length]);
 
   const setCycleLength = useCallback((newLength: number) => {
     const validLength = Math.max(1, Math.min(365, newLength));
     setLengthState(validLength);
     if (typeof window !== "undefined") window.localStorage.setItem(CYCLE_LENGTH_KEY, JSON.stringify(validLength));
-  }, []);
+    syncCycleStart(start, validLength);
+  }, [start]);
 
   const reset = useCallback(() => {
     const now = Date.now();
     if (typeof window !== "undefined") window.localStorage.setItem(CYCLE_KEY, JSON.stringify(now));
     setStart(now);
-    syncCycleStart(now);
-  }, []);
+    syncCycleStart(now, length);
+  }, [length]);
 
   return { start, length, setStart: setCycleStart, setLength: setCycleLength, reset, hydrated };
 }
@@ -847,6 +872,7 @@ export function useFavorites() {
       if (typeof window !== "undefined") {
         window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
       }
+      syncFavorites(next);
       return next;
     });
   }, []);
